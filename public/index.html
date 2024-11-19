@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adega Delivery</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <!-- Navbar Fixa -->
+    <div class="navbar-fixed">
+        <nav class="white">
+            <div class="nav-wrapper container">
+                <a href="#" class="brand-logo black-text hide-on-small-only">🍷 Adega Delivery</a>
+                <a href="#" class="brand-logo black-text hide-on-med-and-up center">🍷 Adega</a>
+                
+                <!-- Menu Mobile -->
+                <a href="#" data-target="mobile-nav" class="sidenav-trigger black-text"><i class="material-icons">menu</i></a>
+
+                <!-- Menu Desktop -->
+                <ul id="nav-mobile" class="right hide-on-med-and-down">
+                    <li>
+                        <a href="#" onclick="showMyOrders()" class="black-text">
+                            <i class="material-icons left">receipt_long</i>
+                            Meus Pedidos
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="modal-trigger black-text" data-target="cart-modal">
+                            <i class="material-icons">shopping_cart</i>
+                            <span class="cart-badge" id="cart-count">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Menu Mobile Lateral -->
+    <ul class="sidenav" id="mobile-nav">
+        <li>
+            <div class="user-view">
+                <div class="background deep-purple lighten-4"></div>
+                <span class="black-text name">Adega Delivery</span>
+                <span class="black-text email">Bebidas na sua casa</span>
+            </div>
+        </li>
+        <li>
+            <a href="#" onclick="showMyOrders()" class="waves-effect">
+                <i class="material-icons">receipt_long</i>
+                Meus Pedidos
+            </a>
+        </li>
+        <li>
+            <a href="#" class="modal-trigger waves-effect" data-target="cart-modal">
+                <i class="material-icons">shopping_cart</i>
+                Carrinho
+                <span class="new badge red accent-2" id="cart-count-mobile">0</span>
+            </a>
+        </li>
+        <li><div class="divider"></div></li>
+        <li><a class="subheader">Categorias</a></li>
+        <li><a class="waves-effect" onclick="filterByCategory('Todos')">Todos os Produtos</a></li>
+        <li><a class="waves-effect" onclick="filterByCategory('Cerveja')">Cervejas</a></li>
+        <li><a class="waves-effect" onclick="filterByCategory('Vinho')">Vinhos</a></li>
+        <li><a class="waves-effect" onclick="filterByCategory('Destilados')">Destilados</a></li>
+        <li><a class="waves-effect" onclick="filterByCategory('Outros')">Outros</a></li>
+    </ul>
+
+    <!-- Categorias -->
+    <div class="categories-scroll">
+        <div class="container">
+            <div class="categories-wrapper">
+                <a href="#" class="category-chip active">Todos</a>
+                <a href="#" class="category-chip">Cervejas</a>
+                <a href="#" class="category-chip">Vinhos</a>
+                <a href="#" class="category-chip">Destilados</a>
+                <a href="#" class="category-chip">Outros</a>
+            </div>
+        </div>
+    </div>
+
+    <main>
+        <div class="container">
+            <!-- Banner -->
+            <div class="section">
+                <div class="banner">
+                    <img src="https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" 
+                         alt="Banner Adega">
+                    <div class="banner-content">
+                        <h4>Bem-vindo à Adega Delivery!</h4>
+                        <p>Entregamos as melhores bebidas na sua casa</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Produtos -->
+            <div class="section">
+                <h5 class="section-title">Produtos em Destaque</h5>
+                <div class="row" id="products-grid">
+                    <!-- Produtos serão inseridos aqui via JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal do Carrinho -->
+        <div id="cart-modal" class="modal bottom-sheet">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4>Seu Carrinho</h4>
+                    <button class="modal-close btn-flat">
+                        <i class="material-icons">close</i>
+                    </button>
+                </div>
+                <div id="cart-items" class="cart-items">
+                    <!-- Itens do carrinho serão inseridos aqui -->
+                </div>
+                <div class="cart-total">
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span>R$ <span id="cart-subtotal">0.00</span></span>
+                    </div>
+                    <div class="total-row">
+                        <span>Taxa de entrega</span>
+                        <span>R$ 5.00</span>
+                    </div>
+                    <div class="total-row total">
+                        <span>Total</span>
+                        <span>R$ <span id="cart-total">0.00</span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="checkout-btn" class="btn-large waves-effect waves-light red accent-2 full-width">
+                    Finalizar Pedido
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Meus Pedidos -->
+    <div id="my-orders-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Meus Pedidos</h4>
+                <button class="modal-close btn-flat">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="row">
+                <div class="input-field col s12">
+                    <i class="material-icons prefix">phone</i>
+                    <input id="search-whatsapp" type="tel" class="validate" pattern="[0-9]{11}">
+                    <label for="search-whatsapp">Seu WhatsApp</label>
+                    <span class="helper-text">Digite apenas números (Ex: 11999999999)</span>
+                </div>
+                <div class="col s12 center-align">
+                    <button class="btn waves-effect waves-light red accent-2" onclick="searchMyOrders()">
+                        Buscar Pedidos
+                        <i class="material-icons right">search</i>
+                    </button>
+                </div>
+            </div>
+            <div id="my-orders-list">
+                <!-- Lista de pedidos será inserida aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="/js/products.js"></script>
+    <script src="/js/cart.js"></script>
+    <script>
+        // Funções para gerenciar Meus Pedidos
+        function showMyOrders() {
+            const savedWhatsapp = localStorage.getItem('lastWhatsapp');
+            if (savedWhatsapp) {
+                document.getElementById('search-whatsapp').value = savedWhatsapp;
+                M.updateTextFields();
+                searchMyOrders();
+            }
+            const modal = M.Modal.getInstance(document.getElementById('my-orders-modal'));
+            modal.open();
+        }
+
+        async function searchMyOrders() {
+            const whatsappInput = document.getElementById('search-whatsapp');
+            const whatsapp = whatsappInput.value.replace(/\D/g, '');
+
+            if (!/^\d{11}$/.test(whatsapp)) {
+                M.toast({html: 'WhatsApp inválido', classes: 'red'});
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/orders/whatsapp/${whatsapp}`);
+                if (!response.ok) throw new Error('Pedidos não encontrados');
+                
+                const orders = await response.json();
+                displayMyOrders(orders);
+                
+                localStorage.setItem('lastWhatsapp', whatsapp);
+            } catch (error) {
+                console.error('Erro ao buscar pedidos:', error);
+                document.getElementById('my-orders-list').innerHTML = `
+                    <div class="center-align red-text">
+                        <i class="material-icons large">error</i>
+                        <h5>Nenhum pedido encontrado</h5>
+                        <p>Verifique o número e tente novamente</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayMyOrders(orders) {
+            const statusMap = {
+                pending: { text: 'Pendente', icon: 'hourglass_empty', color: 'orange' },
+                confirmed: { text: 'Confirmado', icon: 'check_circle', color: 'green' },
+                preparing: { text: 'Em Preparação', icon: 'local_shipping', color: 'blue' },
+                delivering: { text: 'Em Entrega', icon: 'delivery_dining', color: 'purple' },
+                delivered: { text: 'Entregue', icon: 'done_all', color: 'green' },
+                cancelled: { text: 'Cancelado', icon: 'cancel', color: 'red' }
+            };
+
+            const ordersList = document.getElementById('my-orders-list');
+            ordersList.innerHTML = `
+                <div class="collection">
+                    ${orders.map(order => {
+                        const status = statusMap[order.status];
+                        const date = new Date(order.createdAt).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+
+                        return `
+                            <div class="collection-item">
+                                <div class="order-header">
+                                    <span class="order-number">${order.orderNumber}</span>
+                                    <span class="order-date grey-text">${date}</span>
+                                </div>
+                                
+                                <div class="order-status ${status.color}-text">
+                                    <i class="material-icons tiny">${status.icon}</i>
+                                    ${status.text}
+                                </div>
+
+                                <div class="order-items">
+                                    ${order.items.map(item => `
+                                        <div class="order-item">
+                                            ${item.quantity}x ${item.name}
+                                            <span class="right">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+
+                                <div class="order-total">
+                                    <div>Subtotal: R$ ${order.subtotal.toFixed(2)}</div>
+                                    <div>Taxa de entrega: R$ ${order.deliveryFee.toFixed(2)}</div>
+                                    <div class="total">Total: R$ ${order.total.toFixed(2)}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // Inicializar modais
+        document.addEventListener('DOMContentLoaded', function() {
+            const modals = document.querySelectorAll('.modal');
+            M.Modal.init(modals);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar sidenav
+            const sidenav = document.querySelectorAll('.sidenav');
+            M.Sidenav.init(sidenav);
+
+            // Inicializar modais
+            const modals = document.querySelectorAll('.modal');
+            M.Modal.init(modals);
+
+            // Atualizar badge do carrinho mobile quando mudar o carrinho
+            function updateMobileCartBadge() {
+                const count = document.getElementById('cart-count').textContent;
+                document.getElementById('cart-count-mobile').textContent = count;
+            }
+
+            // Observar mudanças no badge do carrinho
+            const cartBadge = document.getElementById('cart-count');
+            const observer = new MutationObserver(updateMobileCartBadge);
+            observer.observe(cartBadge, { characterData: true, childList: true, subtree: true });
+        });
+    </script>
+</body>
+</html> 

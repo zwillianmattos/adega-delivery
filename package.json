@@ -1,0 +1,17 @@
+{
+  "name": "adega-delivery",
+  "version": "1.0.0",
+  "description": "Sistema de delivery de bebidas",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^6.0.12"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+} 

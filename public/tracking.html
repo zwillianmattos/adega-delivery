@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhar Pedido - Adega Delivery</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="navbar-fixed">
+        <nav class="white">
+            <div class="nav-wrapper container">
+                <a href="/" class="brand-logo black-text">🍷 Adega Delivery</a>
+            </div>
+        </nav>
+    </div>
+
+    <main class="container">
+        <div class="section">
+            <div class="row">
+                <div class="col s12">
+                    <div class="card">
+                        <div class="card-content">
+                            <span class="card-title">Acompanhar Pedidos</span>
+                            
+                            <!-- Formulário de Busca -->
+                            <div class="row" id="search-form">
+                                <div class="input-field col s12">
+                                    <i class="material-icons prefix">phone</i>
+                                    <input id="whatsapp" type="tel" class="validate" pattern="[0-9]{11}" required>
+                                    <label for="whatsapp">Seu WhatsApp</label>
+                                    <span class="helper-text">Digite apenas números (Ex: 11999999999)</span>
+                                </div>
+                                <div class="col s12 center-align">
+                                    <button class="btn waves-effect waves-light red accent-2" onclick="searchOrders()">
+                                        Buscar Pedidos
+                                        <i class="material-icons right">search</i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Lista de Pedidos -->
+                            <div id="orders-list" style="display: none;">
+                                <!-- Pedidos serão inseridos aqui -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="/js/tracking.js"></script>
+</body>
+</html> 

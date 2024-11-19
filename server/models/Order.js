@@ -1,0 +1,49 @@
+const mongoose = require('mongoose');
+
+const orderSchema = new mongoose.Schema({
+    whatsapp: {
+        type: String,
+        required: [true, 'WhatsApp é obrigatório'],
+        validate: {
+            validator: function(v) {
+                return /^\d{11}$/.test(v);
+            },
+            message: 'Formato de WhatsApp inválido'
+        }
+    },
+    items: [{
+        productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true
+        },
+        name: String,
+        price: Number,
+        quantity: Number
+    }],
+    status: {
+        type: String,
+        enum: ['pending', 'confirmed', 'preparing', 'delivering', 'delivered', 'cancelled'],
+        default: 'pending'
+    },
+    subtotal: Number,
+    deliveryFee: Number,
+    total: Number,
+    orderNumber: {
+        type: String,
+        unique: true
+    }
+}, {
+    timestamps: true
+});
+
+// Gerar número do pedido antes de salvar
+orderSchema.pre('save', async function(next) {
+    if (!this.orderNumber) {
+        const count = await mongoose.model('Order').countDocuments();
+        this.orderNumber = `#${(count + 1).toString().padStart(4, '0')}`;
+    }
+    next();
+});
+
+module.exports = mongoose.model('Order', orderSchema); 
