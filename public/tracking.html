@@ -13,38 +13,83 @@
         <nav class="white">
             <div class="nav-wrapper container">
                 <a href="/" class="brand-logo black-text">🍷 Adega Delivery</a>
+                <a href="/" class="black-text" style="margin-left: 10px;">
+                    <i class="material-icons">arrow_back</i>
+                </a>
             </div>
         </nav>
     </div>
 
     <main class="container">
         <div class="section">
-            <div class="row">
-                <div class="col s12">
-                    <div class="card">
-                        <div class="card-content">
-                            <span class="card-title">Acompanhar Pedidos</span>
-                            
-                            <!-- Formulário de Busca -->
-                            <div class="row" id="search-form">
-                                <div class="input-field col s12">
-                                    <i class="material-icons prefix">phone</i>
-                                    <input id="whatsapp" type="tel" class="validate" pattern="[0-9]{11}" required>
-                                    <label for="whatsapp">Seu WhatsApp</label>
-                                    <span class="helper-text">Digite apenas números (Ex: 11999999999)</span>
-                                </div>
-                                <div class="col s12 center-align">
-                                    <button class="btn waves-effect waves-light red accent-2" onclick="searchOrders()">
-                                        Buscar Pedidos
-                                        <i class="material-icons right">search</i>
-                                    </button>
-                                </div>
-                            </div>
+            <!-- Status do Pedido -->
+            <div class="order-status-card">
+                <div class="order-header">
+                    <h5>Pedido <span id="order-number"></span></h5>
+                    <span class="order-date" id="order-date"></span>
+                </div>
+                <div class="status-timeline" id="status-timeline">
+                    <!-- Timeline será inserida via JavaScript -->
+                </div>
+            </div>
 
-                            <!-- Lista de Pedidos -->
-                            <div id="orders-list" style="display: none;">
-                                <!-- Pedidos serão inseridos aqui -->
+            <!-- Seção de Pagamento (visível apenas quando pendente) -->
+            <div id="payment-section" style="display: none;">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">Pagamento Pendente</span>
+                        <div class="payment-info center-align">
+                            <p class="payment-amount">Total a pagar: R$ <span id="payment-amount">0.00</span></p>
+                            <div class="qr-code-container">
+                                <img id="pix-qrcode" src="" alt="QR Code PIX">
                             </div>
+                            <div class="pix-copy-paste">
+                                <p>Ou copie o código PIX abaixo:</p>
+                                <div class="input-field">
+                                    <textarea id="pix-code" class="materialize-textarea" readonly></textarea>
+                                </div>
+                                <button class="btn waves-effect waves-light" onclick="copyPixCode()">
+                                    Copiar Código
+                                    <i class="material-icons right">content_copy</i>
+                                </button>
+                            </div>
+                            <div class="payment-instructions">
+                                <h6>Como pagar:</h6>
+                                <ol>
+                                    <li>Abra o app do seu banco</li>
+                                    <li>Escolha pagar com PIX</li>
+                                    <li>Escaneie o QR Code ou cole o código</li>
+                                    <li>Confirme o pagamento</li>
+                                </ol>
+                            </div>
+                            <div class="payment-timer">
+                                <p>Tempo restante para pagamento:</p>
+                                <h5 id="payment-timer">15:00</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalhes do Pedido -->
+            <div class="card">
+                <div class="card-content">
+                    <span class="card-title">Detalhes do Pedido</span>
+                    <div id="order-items">
+                        <!-- Itens do pedido serão inseridos aqui -->
+                    </div>
+                    <div class="order-total">
+                        <div class="total-row">
+                            <span>Subtotal</span>
+                            <span>R$ <span id="order-subtotal">0.00</span></span>
+                        </div>
+                        <div class="total-row">
+                            <span>Taxa de entrega</span>
+                            <span>R$ <span id="order-delivery">0.00</span></span>
+                        </div>
+                        <div class="total-row total">
+                            <span>Total</span>
+                            <span>R$ <span id="order-total">0.00</span></span>
                         </div>
                     </div>
                 </div>

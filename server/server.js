@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const path = require('path');
 const Product = require('./models/Product');
 const Order = require('./models/Order');
+const paymentRoutes = require('./routes/payment');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +30,7 @@ mongoose.connect(mongoURI, {
 app.use(express.json());
 app.use(express.static('public'));
 
+// Rotas de produtos
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -37,16 +40,7 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-app.post('/api/products', async (req, res) => {
-    const product = new Product(req.body);
-    try {
-        const newProduct = await product.save();
-        res.status(201).json(newProduct);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-});
-
+// Rotas de pedidos
 app.post('/api/orders', async (req, res) => {
     try {
         const order = new Order(req.body);
@@ -57,6 +51,9 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
+
+
+// Buscar pedidos por WhatsApp
 app.get('/api/orders/whatsapp/:whatsapp', async (req, res) => {
     try {
         const orders = await Order.find({ 
@@ -72,6 +69,80 @@ app.get('/api/orders/whatsapp/:whatsapp', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+});
+
+// Atualizar status do pedido
+app.patch('/api/orders/:orderNumber/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        let orderNumber = req.params.orderNumber;
+        // Adicionar # se não existir
+        if (!orderNumber.startsWith('#')) {
+            orderNumber = `#${orderNumber}`;
+        }
+        const order = await Order.findOne({ orderNumber });
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Pedido não encontrado' });
+        }
+
+        order.status = status;
+        await order.save();
+        res.json(order);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Buscar pedido por número
+app.get('/api/orders/:orderNumber', async (req, res) => {
+    try {
+        let orderNumber = req.params.orderNumber;
+        // Adicionar # se não existir
+        if (!orderNumber.startsWith('#')) {
+            orderNumber = `#${orderNumber}`;
+        }
+        
+        const order = await Order.findOne({ orderNumber });
+        if (!order) {
+            return res.status(404).json({ message: 'Pedido não encontrado' });
+        }
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Rotas de pagamento
+app.use('/api/payment', paymentRoutes);
+
+// Rota para webhook do Mercado Pago
+app.post('/api/webhook/mercadopago', async (req, res) => {
+    try {
+        const { type, data } = req.body;
+        
+        if (type === 'payment') {
+            const { id } = data;
+            // Processar pagamento
+            const order = await Order.findOne({ paymentId: id });
+            if (order) {
+                order.paymentStatus = 'paid';
+                order.status = 'confirmed';
+                await order.save();
+            }
+        }
+        
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Erro no webhook:', error);
+        res.sendStatus(500);
+    }
+});
+
+// Middleware de erro
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Erro interno do servidor' });
 });
 
 app.listen(PORT, () => {

@@ -138,6 +138,60 @@
                 </button>
             </div>
         </div>
+
+        <!-- Modal de Pagamento PIX -->
+        <div id="checkout-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4>Finalizar Pedido</h4>
+                    <button class="modal-close btn-flat">
+                        <i class="material-icons">close</i>
+                    </button>
+                </div>
+
+                <!-- Resumo do pedido -->
+                <div class="order-summary">
+                    <h5>Resumo do Pedido</h5>
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span>R$ <span id="checkout-subtotal">0.00</span></span>
+                    </div>
+                    <div class="total-row">
+                        <span>Taxa de entrega</span>
+                        <span>R$ 5.00</span>
+                    </div>
+                    <div class="total-row total">
+                        <span>Total</span>
+                        <span>R$ <span id="checkout-total">0.00</span></span>
+                    </div>
+                </div>
+
+                <!-- Formulário de dados -->
+                <div class="row">
+                    <div class="col s12">
+                        <div class="input-field">
+                            <i class="material-icons prefix">phone</i>
+                            <input id="checkout-whatsapp" type="tel" class="validate" pattern="[0-9]{11}" required>
+                            <label for="checkout-whatsapp">Seu WhatsApp</label>
+                            <span class="helper-text">Digite apenas números (Ex: 11999999999)</span>
+                        </div>
+                    </div>
+                    <div class="col s12">
+                        <div class="input-field">
+                            <i class="material-icons prefix">badge</i>
+                            <input id="checkout-cpf" type="text" class="validate" pattern="[0-9]{11}" required>
+                            <label for="checkout-cpf">Seu CPF</label>
+                            <span class="helper-text">Digite apenas números (Ex: 12345678900)</span>
+                        </div>
+                    </div>
+                    <div class="col s12 center-align">
+                        <button id="confirm-order-btn" class="btn-large waves-effect waves-light red accent-2">
+                            Confirmar Pedido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Modal de Meus Pedidos -->
@@ -173,6 +227,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script src="/js/products.js"></script>
     <script src="/js/cart.js"></script>
+    <script src="/js/payment.js"></script>
     <script>
         // Funções para gerenciar Meus Pedidos
         function showMyOrders() {

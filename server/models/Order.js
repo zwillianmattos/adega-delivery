@@ -1,6 +1,16 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
+    cpf: {
+        type: String,
+        required: [true, 'CPF é obrigatório'],
+        validate: {
+            validator: function(v) {
+                return /^\d{11}$/.test(v);
+            },
+            message: 'Formato de CPF inválido'
+        }
+    },
     whatsapp: {
         type: String,
         required: [true, 'WhatsApp é obrigatório'],
@@ -32,6 +42,12 @@ const orderSchema = new mongoose.Schema({
     orderNumber: {
         type: String,
         unique: true
+    },
+    paymentId: String,
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed'],
+        default: 'pending'
     }
 }, {
     timestamps: true
