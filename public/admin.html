@@ -4,40 +4,175 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adega Delivery - Área Administrativa</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/admin.css">
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ea1d2c;
+            --secondary-color: #ff424f;
+            --background-color: #f7f7f7;
+            --text-color: #3e3e3e;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        nav {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        nav .brand-logo, nav ul a {
+            color: var(--text-color);
+        }
+
+        .admin-section {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            text-transform: none;
+            font-weight: 500;
+            border-radius: 4px;
+            height: 42px;
+            line-height: 42px;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        #order-status-filter {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            height: 42px;
+        }
+
+        .orders-container {
+            margin-top: 20px;
+        }
+
+        .orders-controls, .reports-controls {
+            background: #f8f8f8;
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .btn-space {
+            margin-right: 12px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .btn-space {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        nav .nav-wrapper {
+            padding: 0 20px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-logo i {
+            color: var(--primary-color);
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Painel Administrativo</h1>
-    </header>
+    <!-- Navbar -->
+    <nav>
+        <div class="nav-wrapper">
+            <a href="#" class="brand-logo">
+                <i class="material-icons">local_bar</i>
+                <span>Adega Delivery</span>
+            </a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li><a href="#" onclick="logout()" class="waves-effect">
+                    <i class="material-icons left">exit_to_app</i>Sair
+                </a></li>
+            </ul>
+        </div>
+    </nav>
 
-    <main>
+    <div class="container">
+        <!-- Pedidos Section -->
         <section class="admin-section">
-            <h2>Gerenciamento de Pedidos</h2>
+            <h4 class="section-title">
+                <i class="material-icons" style="color: var(--primary-color)">shopping_cart</i>
+                Gerenciamento de Pedidos
+            </h4>
             <div class="orders-controls">
-                <select id="order-status-filter">
-                    <option value="all">Todos os Pedidos Pagos</option>
-                    <option value="preparing">Em Preparação</option>
-                    <option value="delivering">Em Entrega</option>
-                    <option value="completed">Concluídos</option>
-                    <option value="cancelled">Cancelados</option>
-                </select>
+                <div class="input-field">
+                    <select id="order-status-filter" class="browser-default">
+                        <option value="all">Todos os Pedidos Pagos</option>
+                        <option value="preparing">Em Preparação</option>
+                        <option value="delivering">Em Entrega</option>
+                        <option value="completed">Concluídos</option>
+                        <option value="cancelled">Cancelados</option>
+                    </select>
+                </div>
             </div>
             <div id="orders-list" class="orders-container"></div>
         </section>
 
+        <!-- Relatórios Section -->
         <section class="admin-section">
-            <h2>Relatórios</h2>
+            <h4 class="section-title">
+                <i class="material-icons" style="color: var(--primary-color)">assessment</i>
+                Relatórios
+            </h4>
             <div class="reports-controls">
-                <button onclick="generateReport('daily')">Relatório Diário</button>
-                <button onclick="generateReport('weekly')">Relatório Semanal</button>
-                <button onclick="generateReport('monthly')">Relatório Mensal</button>
+                <button class="btn waves-effect waves-light btn-space">
+                    <i class="material-icons left">today</i>
+                    Relatório Diário
+                </button>
+                <button class="btn waves-effect waves-light btn-space">
+                    <i class="material-icons left">view_week</i>
+                    Relatório Semanal
+                </button>
+                <button class="btn waves-effect waves-light btn-space">
+                    <i class="material-icons left">date_range</i>
+                    Relatório Mensal
+                </button>
             </div>
             <div id="report-results"></div>
         </section>
-    </main>
+    </div>
 
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html> 
