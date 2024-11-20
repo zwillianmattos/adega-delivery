@@ -1,35 +1,69 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const verifyButton = document.getElementById('verifyAge');
-    const birthDateInput = document.getElementById('birthDate');
-
-    // Se já estiver verificado, redireciona para a página principal
-    if (SessionManager.isAgeVerified()) {
+    // Se já estiver autenticado e com idade verificada, vai direto para home
+    if (localStorage.getItem('age_verified') === 'true' && SessionManager.isLoggedIn()) {
         window.location.href = '/';
         return;
     }
 
-    // Define a data máxima como hoje
-    const today = new Date();
-    birthDateInput.max = today.toISOString().split('T')[0];
+    // Se tiver apenas idade verificada mas não estiver autenticado
+    if (localStorage.getItem('age_verified') === 'true') {
+        window.location.href = '/auth.html';
+        return;
+    }
 
-    // Define a data mínima como 120 anos atrás
-    const minDate = new Date();
-    minDate.setFullYear(today.getFullYear() - 120);
-    birthDateInput.min = minDate.toISOString().split('T')[0];
+    const verifyAgeButton = document.getElementById('verifyAge');
+    verifyAgeButton.addEventListener('click', function() {
+        const day = document.getElementById('birthDay').value;
+        const month = document.getElementById('birthMonth').value;
+        const year = document.getElementById('birthYear').value;
 
-    verifyButton.addEventListener('click', async () => {
-        const birthDate = birthDateInput.value;
-
-        if (!birthDate) {
-            M.toast({html: 'Por favor, insira sua data de nascimento', classes: 'red'});
+        if (!day || !month || !year) {
+            M.toast({
+                html: 'Por favor, preencha sua data de nascimento completa',
+                classes: 'red'
+            });
             return;
         }
 
-        try {
-            await SessionManager.verifyAge(birthDate);
-            window.location.href = '/';
-        } catch (error) {
-            M.toast({html: error.message, classes: 'red'});
+        const birthDate = new Date(year, month - 1, day);
+        const age = calculateAge(birthDate);
+
+        if (age >= 18) {
+            localStorage.setItem('age_verified', 'true');
+            localStorage.setItem('birth_date', birthDate.toISOString());
+            
+            M.toast({
+                html: 'Idade verificada com sucesso!',
+                classes: 'green',
+                displayLength: 1500
+            });
+            
+            setTimeout(() => {
+                // Se já estiver logado, vai para home
+                if (localStorage.getItem('token')) {
+                    window.location.href = '/';
+                } else {
+                    // Se não, vai para tela de auth
+                    window.location.href = '/auth.html';
+                }
+            }, 1500);
+        } else {
+            M.toast({
+                html: 'Você precisa ter 18 anos ou mais para acessar',
+                classes: 'red'
+            });
         }
     });
-}); 
+});
+
+function calculateAge(birthDate) {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
+} 

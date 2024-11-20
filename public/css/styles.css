@@ -562,4 +562,125 @@ input[readonly] {
     .address-details {
         padding-left: 16px;
     }
+}
+
+/* Estilos para cards de endereço */
+.address-card {
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    position: relative;
+}
+
+.address-card.default {
+    border-color: #4CAF50;
+}
+
+.address-card label {
+    display: block;
+    margin-bottom: 0;
+}
+
+.address-card .default-badge {
+    background: #4CAF50;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-left: 8px;
+}
+
+.address-actions {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.address-actions .btn-flat {
+    padding: 0 8px;
+    color: #666;
+}
+
+.address-actions .btn-flat:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+/* Estilos para o gerenciamento de endereços */
+.addresses-list {
+    margin: 20px 0;
+}
+
+.address-card {
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.address-card label {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.address-details {
+    display: block;
+    padding-left: 35px;
+    line-height: 1.5;
+    color: #333;
+}
+
+.address-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#back-to-addresses {
+    display: none;
+}
+
+.divider {
+    margin: 20px 0;
+}
+
+.saved-addresses-container {
+    margin: 20px 0;
+    min-height: 100px;
+}
+
+.address-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.address-card label {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.address-details {
+    display: block;
+    padding-left: 35px;
+    line-height: 1.6;
+}
+
+.address-card .btn-flat {
+    padding: 0 8px;
+}
+
+.address-card [type="radio"]:not(:checked) + span,
+.address-card [type="radio"]:checked + span {
+    padding-left: 35px;
 } 

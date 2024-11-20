@@ -128,6 +128,7 @@ window.cart = {
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     window.cart.loadFromLocalStorage();
+    initializeCartModal();
 });
 
 // Atualizar as funções globais para usar o objeto cart
@@ -148,3 +149,28 @@ window.onclick = function(event) {
 }
 
 window.clearCart = () => window.cart.clear();
+
+function initializeCartModal() {
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            
+            // Fechar o modal do carrinho
+            const cartModal = M.Modal.getInstance(document.getElementById('cart-modal'));
+            if (cartModal) {
+                cartModal.close();
+                // Pequeno delay para garantir que o modal do carrinho fechou
+                setTimeout(() => {
+                    window.openCheckoutModal();
+                }, 300);
+            } else {
+                window.openCheckoutModal();
+            }
+        });
+    }
+}

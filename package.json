@@ -13,9 +13,11 @@
     "express": "^4.17.1",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mercadopago": "^2.0.15",
-    "mongoose": "^6.0.12"
+    "mongoose": "^6.0.12",
+    "nodemailer": "^6.9.16"
   },
   "devDependencies": {
     "nodemon": "^2.0.15"

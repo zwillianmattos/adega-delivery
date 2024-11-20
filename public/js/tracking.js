@@ -1,6 +1,6 @@
 class OrderTracker {
     constructor() {
-        this.orderNumber = window.location.hash.replace('#', '');
+        this.orderNumber = new URLSearchParams(window.location.search).get('order');
         this.statusCheckInterval = null;
         this.paymentTimer = null;
         
@@ -29,16 +29,42 @@ class OrderTracker {
     }
 
     async loadOrderDetails() {
-        const response = await fetch(`/api/orders/${this.orderNumber}`);
-        if (!response.ok) throw new Error('Pedido não encontrado');
-        
-        const order = await response.json();
-        this.updateOrderDisplay(order);
-        this.showAddressSection(order.customer.address);
-        if (order.status === 'PENDING' && order.paymentStatus === 'pending' && !order.paymentId) {
-            await this.loadPaymentDetails(order);
-        } else if (order.paymentId) {
-            await this.checkPaymentStatus(order);
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            const response = await fetch(`/api/orders/${this.orderNumber}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 401) {
+                // Token inválido ou expirado
+                localStorage.removeItem('token');
+                window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error('Pedido não encontrado');
+            }
+            
+            const order = await response.json();
+            this.updateOrderDisplay(order);
+            this.showAddressSection(order.customer.address);
+            if (order.status === 'PENDING' && order.paymentStatus === 'pending' && !order.paymentId) {
+                await this.loadPaymentDetails(order);
+            } else if (order.paymentId) {
+                await this.checkPaymentStatus(order);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar detalhes do pedido:', error);
+            M.toast({html: 'Erro ao carregar pedido', classes: 'red'});
         }
     }
 
@@ -102,7 +128,7 @@ class OrderTracker {
                         this.startPaymentTimer(paymentData.createdAt);
                     }
                 }
-            } else if (status === 'paid') {
+            } else if (status === 'approved') {
                 document.getElementById('payment-section').style.display = 'none';
                 if (!this.paymentConfirmedToastDisplayed) {
                     M.toast({html: 'Pagamento confirmado!', classes: 'green'});
@@ -264,6 +290,39 @@ function copyPixCode() {
     pixCode.select();
     document.execCommand('copy');
     M.toast({html: 'Código PIX copiado!', classes: 'green'});
+}
+
+function updateOrderStatus(order) {
+    const statusMap = {
+        'PENDING': { text: 'Pendente', icon: 'hourglass_empty', color: 'orange' },
+        'CONFIRMED': { text: 'Confirmado', icon: 'check_circle', color: 'green' },
+        'PREPARING': { text: 'Em Preparação', icon: 'local_shipping', color: 'blue' },
+        'DELIVERING': { text: 'Em Entrega', icon: 'delivery_dining', color: 'purple' },
+        'DELIVERED': { text: 'Entregue', icon: 'done_all', color: 'green' },
+        'CANCELLED': { text: 'Cancelado', icon: 'cancel', color: 'red' }
+    };
+
+    const paymentStatusMap = {
+        'pending': { text: 'Aguardando Pagamento', icon: 'payments', color: 'orange' },
+        'approved': { text: 'Pagamento Aprovado', icon: 'check_circle', color: 'green' },
+        'rejected': { text: 'Pagamento Rejeitado', icon: 'error', color: 'red' },
+        'refunded': { text: 'Pagamento Reembolsado', icon: 'replay', color: 'blue' }
+    };
+
+    const status = statusMap[order.status] || statusMap.PENDING;
+    const paymentStatus = paymentStatusMap[order.paymentStatus] || paymentStatusMap.pending;
+
+    // Atualizar status do pedido
+    document.getElementById('order-status').innerHTML = `
+        <i class="material-icons ${status.color}-text">${status.icon}</i>
+        <span class="${status.color}-text">${status.text}</span>
+    `;
+
+    // Atualizar status do pagamento
+    document.getElementById('payment-status').innerHTML = `
+        <i class="material-icons ${paymentStatus.color}-text">${paymentStatus.icon}</i>
+        <span class="${paymentStatus.color}-text">${paymentStatus.text}</span>
+    `;
 }
 
 // Inicializar o tracker quando a página carregar

@@ -1,90 +1,67 @@
 const mongoose = require('mongoose');
 
-const orderSchema = new mongoose.Schema({
-    cpf: {
+const OrderSchema = new mongoose.Schema({
+    orderNumber: {
         type: String,
-        required: [true, 'CPF é obrigatório'],
-        validate: {
-            validator: function(v) {
-                return /^\d{11}$/.test(v);
-            },
-            message: 'Formato de CPF inválido'
-        }
+        required: true,
+        unique: true
     },
-    whatsapp: {
-        type: String,
-        required: [true, 'WhatsApp é obrigatório'],
-        validate: {
-            validator: function(v) {
-                return /^\d{11}$/.test(v);
-            },
-            message: 'Formato de WhatsApp inválido'
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    customer: {
+        name: String,
+        email: String,
+        phone: String,
+        cpf: String,
+        address: {
+            cep: String,
+            street: String,
+            number: String,
+            complement: String,
+            neighborhood: String,
+            city: String
         }
     },
     items: [{
         productId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Product',
-            required: true
+            ref: 'Product'
         },
         name: String,
         price: Number,
-        quantity: Number
+        quantity: Number,
+        total: Number
     }],
-    status: {
-        type: String,
-        enum: ['PENDING', 'PREPARING', 'DELIVERING', 'COMPLETED', 'CANCELLED'],
-        default: 'PENDING'
-    },
     subtotal: Number,
     deliveryFee: Number,
     total: Number,
-    orderNumber: {
+    status: {
         type: String,
-        unique: true
+        enum: ['PENDING', 'CONFIRMED', 'PREPARING', 'DELIVERING', 'DELIVERED', 'CANCELLED'],
+        default: 'PENDING'
     },
-    paymentId: String,
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed'],
+        enum: ['pending', 'approved', 'rejected', 'refunded'],
         default: 'pending'
     },
-    customer: {
-        address: {
-            street: {
-                type: String,
-                required: true
-            },
-            number: {
-                type: String,
-                required: true
-            },
-            complement: String,
-            neighborhood: {
-                type: String,
-                required: true
-            },
-            city: {
-                type: String,
-                required: true
-            },
-            zipcode: {
-                type: String,
-                required: true
-            }
-        }
+    paymentMethod: {
+        type: String,
+        enum: ['PIX', 'CREDIT_CARD', 'CASH'],
+        default: 'PIX'
+    },
+    paymentDetails: {
+        pixCode: String,
+        pixQRCode: String,
+        pixExpiration: Date,
+        creditCardBrand: String,
+        creditCardLast4: String,
+        transactionId: String
     }
 }, {
     timestamps: true
 });
 
-// Gerar número do pedido antes de salvar
-orderSchema.pre('save', async function(next) {
-    if (!this.orderNumber) {
-        const count = await mongoose.model('Order').countDocuments();
-        this.orderNumber = `#${(count + 1).toString().padStart(4, '0')}`;
-    }
-    next();
-});
-
-module.exports = mongoose.model('Order', orderSchema); 
+module.exports = mongoose.model('Order', OrderSchema); 

@@ -19,6 +19,11 @@ async function loadDashboard() {
             }
         });
         
+        if (response.status === 401) {
+            window.location.href = '/admin-login.html';
+            return;
+        }
+        
         if (!response.ok) throw new Error('Erro ao carregar dashboard');
         
         const data = await response.json();
@@ -44,6 +49,11 @@ async function loadCharts() {
                 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             }
         });
+        
+        if (response.status === 401) {
+            window.location.href = '/admin-login.html';
+            return;
+        }
         
         if (!response.ok) throw new Error('Erro ao carregar gráficos');
         
@@ -143,6 +153,11 @@ async function loadOrders() {
                 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             }
         });
+        
+        if (response.status === 401) {
+            window.location.href = '/admin-login.html';
+            return;
+        }
         
         if (!response.ok) throw new Error('Erro ao carregar pedidos');
         
@@ -250,9 +265,14 @@ async function updateOrderStatus(orderId, newStatus) {
             body: JSON.stringify({ status: newStatus })
         });
         
+        if (response.status === 401) {
+            window.location.href = '/admin-login.html';
+            return;
+        }
+        
         if (!response.ok) throw new Error('Erro ao atualizar status');
         
-        await loadOrders(); // Aguarda o carregamento dos pedidos
+        await loadOrders(); 
         M.toast({html: 'Status atualizado com sucesso'});
     } catch (error) {
         console.error('Erro:', error);

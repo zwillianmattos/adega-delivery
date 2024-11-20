@@ -1,90 +1,51 @@
-class SessionManager {
-    static AGE_VERIFIED_KEY = 'age_verified';
-    static USER_INFO_KEY = 'user_info';
-    static MIN_AGE = 18;
+const SessionManager = {
+    getUserInfo() {
+        const userInfo = localStorage.getItem('userInfo');
+        return userInfo ? JSON.parse(userInfo) : null;
+    },
 
-    // Verifica se o usuário já confirmou a idade
-    static isAgeVerified() {
-        return localStorage.getItem(this.AGE_VERIFIED_KEY) === 'true';
-    }
+    setUserInfo(info) {
+        localStorage.setItem('userInfo', JSON.stringify(info));
+        this.updateUIElements();
+    },
 
-    // Marca o usuário como verificado
-    static setAgeVerified() {
-        localStorage.setItem(this.AGE_VERIFIED_KEY, 'true');
-    }
+    clearUserInfo() {
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('token');
+        this.updateUIElements();
+    },
 
-    // Salva as informações do usuário
-    static saveUserInfo(userInfo) {
-        localStorage.setItem(this.USER_INFO_KEY, JSON.stringify(userInfo));
-    }
+    setToken(token) {
+        localStorage.setItem('token', token);
+    },
 
-    // Recupera as informações do usuário
-    static getUserInfo() {
-        const info = localStorage.getItem(this.USER_INFO_KEY);
-        return info ? JSON.parse(info) : {};
-    }
+    getToken() {
+        return localStorage.getItem('token');
+    },
 
-    // Limpa as informações do usuário
-    static clearUserInfo() {
-        localStorage.removeItem(this.USER_INFO_KEY);
-    }
-
-    // Verifica se a data fornecida indica idade maior que 18 anos
-    static isOldEnough(birthDate) {
-        const today = new Date();
-        const birth = new Date(birthDate);
-        let age = today.getFullYear() - birth.getFullYear();
-        const monthDiff = today.getMonth() - birth.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            age--;
-        }
-        
-        return age >= this.MIN_AGE;
-    }
-
-    // Verifica a idade do usuário e retorna uma Promise
-    static verifyAge(birthDate) {
-        return new Promise((resolve, reject) => {
-            if (!birthDate) {
-                reject(new Error('Data de nascimento é obrigatória'));
-                return;
-            }
-
-            if (this.isOldEnough(birthDate)) {
-                this.setAgeVerified();
-                resolve(true);
-            } else {
-                reject(new Error('Você precisa ter pelo menos 18 anos para acessar este site'));
-            }
-        });
-    }
-
-    // Verifica se o usuário está autenticado
-    static isAuthenticated() {
+    updateUIElements() {
         const userInfo = this.getUserInfo();
-        return !!(userInfo.whatsapp && userInfo.cpf);
-    }
+        const authText = document.getElementById('auth-text');
+        const authTextMobile = document.getElementById('auth-text-mobile');
+        const userInfoElement = document.getElementById('user-info');
 
-    // Faz logout do usuário
-    static logout() {
-        this.clearUserInfo();
-        window.location.reload();
-    }
-
-    // Redireciona para autenticação se necessário
-    static checkAgeVerification() {
-        if (!this.isAgeVerified()) {
-            // Redireciona para a página de verificação de idade
-            window.location.href = '/age-verification.html';
+        if (userInfo) {
+            if (authText) authText.textContent = 'Minha Conta';
+            if (authTextMobile) authTextMobile.textContent = 'Minha Conta';
+            if (userInfoElement) userInfoElement.textContent = userInfo.phone || userInfo.email;
+        } else {
+            if (authText) authText.textContent = 'Entrar';
+            if (authTextMobile) authTextMobile.textContent = 'Entrar';
+            if (userInfoElement) userInfoElement.textContent = 'Faça login para continuar';
         }
-    }
-}
+    },
 
-// Executa a verificação de idade quando o script é carregado
-document.addEventListener('DOMContentLoaded', () => {
-    // Só faz a verificação se não estiver na página de verificação de idade
-    if (!window.location.pathname.includes('age-verification.html')) {
-        SessionManager.checkAgeVerification();
+    isLoggedIn() {
+        return !!this.getToken() && !!this.getUserInfo();
     }
+};
+
+// Atualizar UI quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    SessionManager.updateUIElements();
 });

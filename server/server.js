@@ -5,8 +5,11 @@ const mongoose = require('mongoose');
 const path = require('path');
 const Product = require('./models/Product');
 const Order = require('./models/Order');
+const authRoutes = require('./routes/auth');
 const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
+const addressesRoutes = require('./routes/addresses');
+const ordersRoutes = require('./routes/orders');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
@@ -26,6 +29,9 @@ mongoose.connect(mongoURI, {
 }).catch((err) => {
     console.error('Erro ao conectar ao MongoDB:', err);
 });
+
+console.log("Email Credentials: ");    
+console.log(process.env.EMAIL_USER);    
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -104,28 +110,13 @@ app.patch('/api/orders/:orderNumber/status', async (req, res) => {
     }
 });
 
-// Buscar pedido por número
-app.get('/api/orders/:orderNumber', async (req, res) => {
-    try {
-        let orderNumber = req.params.orderNumber;
-        // Adicionar # se não existir
-        if (!orderNumber.startsWith('#')) {
-            orderNumber = `#${orderNumber}`;
-        }
-        
-        const order = await Order.findOne({ orderNumber });
-        if (!order) {
-            return res.status(404).json({ message: 'Pedido não encontrado' });
-        }
-        res.json(order);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
 // Rotas de pagamento
 app.use('/api/admin', adminRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/addresses', addressesRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/orders', ordersRoutes);
+
 
 // Rota para webhook do Mercado Pago
 app.post('/api/webhook/mercadopago', async (req, res) => {
@@ -152,23 +143,6 @@ app.post('/api/webhook/mercadopago', async (req, res) => {
     }
 });
 
-// Rota para atualizar status do pedido
-app.put('/api/orders/:orderId/status', async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const { status } = req.body;
-        
-        const order = await Order.findByIdAndUpdate(
-            orderId,
-            { status },
-            { new: true }
-        );
-        
-        res.json(order);
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao atualizar status do pedido' });
-    }
-});
 
 // Rota para relatórios
 app.get('/api/reports/:period', async (req, res) => {

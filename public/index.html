@@ -22,6 +22,12 @@
                 <!-- Menu Desktop -->
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
                     <li>
+                        <a href="/auth.html" id="auth-button" class="black-text">
+                            <i class="material-icons left">person</i>
+                            <span id="auth-text">Entrar</span>
+                        </a>
+                    </li>
+                    <li>
                         <a href="#" onclick="showMyOrders()" class="black-text">
                             <i class="material-icons left">receipt_long</i>
                             Meus Pedidos
@@ -45,8 +51,14 @@
             <div class="user-view">
                 <div class="background deep-purple lighten-4"></div>
                 <span class="black-text name">Adega Delivery</span>
-                <span class="black-text email">Bebidas na sua casa</span>
+                <span class="black-text email" id="user-info">Faça login para continuar</span>
             </div>
+        </li>
+        <li>
+            <a href="/auth.html" id="auth-button-mobile" class="waves-effect">
+                <i class="material-icons">person</i>
+                <span id="auth-text-mobile">Entrar</span>
+            </a>
         </li>
         <li>
             <a href="#" onclick="showMyOrders()" class="waves-effect">
@@ -167,9 +179,42 @@
                     </div>
                 </div>
 
-                <!-- Formulário de dados -->
+                <!-- Botão de confirmar pedido - Movido para fora dos formulários -->
                 <div class="row">
+                    <div class="col s12 center-align">
+                        <button id="confirm-order-btn" class="btn-large waves-effect waves-light red accent-2">
+                            Confirmar Pedido
+                            <i class="material-icons right">check</i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulário de dados -->
+                <div class="row" id="address-selection">
                     <div class="col s12">
+                        <h6>Endereços Salvos</h6>
+                        <div id="saved-addresses" class="saved-addresses-container">
+                            <!-- Endereços serão inseridos aqui -->
+                        </div>
+                        <div class="center-align">
+                            <button id="new-address-btn" class="btn waves-effect waves-light" onclick="AddressManager.showNewAddressForm()">
+                                Novo Endereço
+                                <i class="material-icons right">add_location</i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulário de novo endereço -->
+                <div class="row" id="address-form" style="display: none;">
+                    <div class="col s12">
+                        <div class="address-form-header">
+                            <h6>Novo Endereço</h6>
+                            <button id="back-to-addresses" class="btn-flat waves-effect" onclick="AddressManager.showAddressList()">
+                                <i class="material-icons left">arrow_back</i>
+                                Voltar para lista
+                            </button>
+                        </div>
                         <div class="input-field">
                             <i class="material-icons prefix">phone</i>
                             <input id="checkout-whatsapp" type="tel" class="validate" pattern="[0-9]{11}" required>
@@ -228,10 +273,13 @@
                             <label for="checkout-city" class="active">Cidade</label>
                         </div>
                     </div>
-                    <div class="col s12 center-align">
-                        <button id="confirm-order-btn" class="btn-large waves-effect waves-light red accent-2">
-                            Confirmar Pedido
-                        </button>
+                    <div class="row">
+                        <div class="col s12 center-align">
+                            <label>
+                                <input type="checkbox" id="save-address" />
+                                <span>Salvar este endereço para futuras compras</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -247,20 +295,6 @@
                     <i class="material-icons">close</i>
                 </button>
             </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <i class="material-icons prefix">phone</i>
-                    <input id="search-whatsapp" type="tel" class="validate" pattern="[0-9]{11}">
-                    <label for="search-whatsapp">Seu WhatsApp</label>
-                    <span class="helper-text">Digite apenas números (Ex: 11999999999)</span>
-                </div>
-                <div class="col s12 center-align">
-                    <button class="btn waves-effect waves-light red accent-2" onclick="searchMyOrders()">
-                        Buscar Pedidos
-                        <i class="material-icons right">search</i>
-                    </button>
-                </div>
-            </div>
             <div id="my-orders-list">
                 <!-- Lista de pedidos será inserida aqui -->
             </div>
@@ -269,47 +303,64 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script src="/js/products.js"></script>
-    <script src="/js/cart.js"></script>
-    <script src="/js/payment.js"></script>
     <script src="/js/session.js"></script>
+    <script src="/js/addresses.js"></script>
+    <script src="/js/payment.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/products.js"></script>
+    <script src="/js/orders.js"></script>
     <script>
         // Funções para gerenciar Meus Pedidos
         function showMyOrders() {
-            const savedWhatsapp = localStorage.getItem('lastWhatsapp');
-            if (savedWhatsapp) {
-                document.getElementById('search-whatsapp').value = savedWhatsapp;
-                M.updateTextFields();
-                searchMyOrders();
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
             }
+            
+            searchMyOrders();
             const modal = M.Modal.getInstance(document.getElementById('my-orders-modal'));
             modal.open();
         }
 
         async function searchMyOrders() {
-            const whatsappInput = document.getElementById('search-whatsapp');
-            const whatsapp = whatsappInput.value.replace(/\D/g, '');
-
-            if (!/^\d{11}$/.test(whatsapp)) {
-                M.toast({html: 'WhatsApp inválido', classes: 'red'});
-                return;
-            }
-
             try {
-                const response = await fetch(`/api/orders/whatsapp/${whatsapp}`);
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+
+                const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+                if (!userInfo || !userInfo.id) {
+                    throw new Error('Usuário não autenticado');
+                }
+
+                const response = await fetch(`/api/orders/user/${userInfo.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+
                 if (!response.ok) throw new Error('Pedidos não encontrados');
                 
                 const orders = await response.json();
                 displayMyOrders(orders);
                 
-                localStorage.setItem('lastWhatsapp', whatsapp);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('my-orders-list').innerHTML = `
                     <div class="center-align red-text">
                         <i class="material-icons large">error</i>
                         <h5>Nenhum pedido encontrado</h5>
-                        <p>Verifique o número e tente novamente</p>
+                        <p>Faça login para ver seus pedidos</p>
                     </div>
                 `;
             }
@@ -412,60 +463,65 @@
             const modals = document.querySelectorAll('.modal');
             M.Modal.init(modals);
 
+            // Garantir que o carrinho seja inicializado
+            if (window.cart) {
+                window.cart.loadFromLocalStorage();
+                initializeCartModal();
+            }
+
             // Atualizar badge do carrinho mobile quando mudar o carrinho
             function updateMobileCartBadge() {
-                const count = document.getElementById('cart-count').textContent;
-                document.getElementById('cart-count-mobile').textContent = count;
+                const count = document.getElementById('cart-count')?.textContent || '0';
+                const mobileBadge = document.getElementById('cart-count-mobile');
+                if (mobileBadge) {
+                    mobileBadge.textContent = count;
+                }
             }
 
             // Observar mudanças no badge do carrinho
             const cartBadge = document.getElementById('cart-count');
-            const observer = new MutationObserver(updateMobileCartBadge);
-            observer.observe(cartBadge, { characterData: true, childList: true, subtree: true });
-        });
+            if (cartBadge) {
+                const observer = new MutationObserver(updateMobileCartBadge);
+                observer.observe(cartBadge, { characterData: true, childList: true, subtree: true });
+            }
 
-        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar perfil apenas se os elementos existirem
             const profileButton = document.getElementById('profileButton');
             const profileInfo = document.getElementById('profileInfo');
             const profileModal = document.getElementById('profile-modal');
-            const whatsappInput = document.getElementById('profile-whatsapp');
-            const cpfInput = document.getElementById('profile-cpf');
             
-            // Inicializar modal
-            M.Modal.init(profileModal);
-            
-            // Carregar dados salvos
-            const userInfo = SessionManager.getUserInfo();
-            if (userInfo.whatsapp) {
-                whatsappInput.value = userInfo.whatsapp;
-                profileInfo.textContent = userInfo.whatsapp;
-            }
-            if (userInfo.cpf) {
-                cpfInput.value = userInfo.cpf;
-            }
-            M.updateTextFields();
+            if (profileButton && profileModal) {
+                // Carregar dados salvos
+                const userInfo = SessionManager.getUserInfo();
+                
+                const whatsappInput = document.getElementById('profile-whatsapp');
+                const cpfInput = document.getElementById('profile-cpf');
+                
+                if (whatsappInput && userInfo?.whatsapp) {
+                    whatsappInput.value = userInfo.whatsapp;
+                }
+                
+                if (profileInfo && userInfo?.whatsapp) {
+                    profileInfo.textContent = userInfo.whatsapp;
+                }
+                
+                if (cpfInput && userInfo?.cpf) {
+                    cpfInput.value = userInfo.cpf;
+                }
 
-            // Abrir modal ao clicar no botão de perfil
-            profileButton.onclick = () => {
-                const modal = M.Modal.getInstance(profileModal);
-                modal.open();
-            };
+                if (window.M && M.updateTextFields) {
+                    M.updateTextFields();
+                }
 
-            // Salvar dados do perfil
-            document.getElementById('save-profile-btn').onclick = () => {
-                const whatsapp = whatsappInput.value.replace(/\D/g, '');
-                const cpf = cpfInput.value.replace(/\D/g, '');
-
-                if (!/^\d{11}$/.test(whatsapp)) {
-                    M.toast({html: 'WhatsApp inválido', classes: 'red'});
-            if (SessionManager.isAuthenticated()) {
-                authButtonText.textContent = 'Sair';
-                authButton.onclick = () => SessionManager.logout();
-            } else {
-                authButtonText.textContent = 'Entrar';
-                authButton.onclick = () => SessionManager.redirectToAuth();
+                // Abrir modal ao clicar no botão de perfil
+                profileButton.onclick = () => {
+                    const modal = M.Modal.getInstance(profileModal);
+                    if (modal) {
+                        modal.open();
+                    }
+                };
             }
-        }}});
+        });
 
     </script>
 </body>

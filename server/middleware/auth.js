@@ -9,7 +9,17 @@ const auth = (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.admin = decoded;
+        
+        if (decoded.isAdmin) {
+            req.admin = decoded;
+        } else {
+            req.user = {
+                id: decoded.id,
+                email: decoded.email,
+                name: decoded.name
+            };
+        }
+
         next();
     } catch (error) {
         res.status(401).json({ message: 'Por favor, faça login.' });
