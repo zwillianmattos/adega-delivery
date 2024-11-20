@@ -44,7 +44,6 @@ class OrderTracker {
             });
 
             if (response.status === 401) {
-                // Token inválido ou expirado
                 localStorage.removeItem('token');
                 window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.href);
                 return;
@@ -57,10 +56,56 @@ class OrderTracker {
             const order = await response.json();
             this.updateOrderDisplay(order);
             this.showAddressSection(order.customer.address);
-            if (order.status === 'PENDING' && order.paymentStatus === 'pending' && !order.paymentId) {
-                await this.loadPaymentDetails(order);
-            } else if (order.paymentId) {
-                await this.checkPaymentStatus(order);
+            
+            // Verifica o status do pedido e pagamento
+            if (order.status === 'pending' || order.status === 'PENDING') {
+                if (order.paymentId) {
+                    // Se já existe um paymentId, verifica o status e tenta recuperar os dados do PIX
+                    try {
+                        const token = localStorage.getItem('token');
+                        const statusResponse = await fetch(`/api/payment/status/${order.paymentId}`, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        const statusData = await statusResponse.json();
+
+                        if (statusData.status === 'expired' || statusData.pixExpired) {
+                            // Se expirou, mostra seção de expirado
+                            document.getElementById('payment-section').style.display = 'none';
+                            document.getElementById('payment-expired-section').style.display = 'block';
+                            clearInterval(this.paymentTimer);
+                            localStorage.removeItem('pixCreationDate');
+                            this.updateStatusTimeline('cancelled');
+                        } else if (statusData.status === 'pending') {
+                            // Se ainda está pendente, tenta recuperar os dados do PIX
+                            const pixData = await this.getExistingPixData(order.paymentId);
+                            this.showPaymentSection(pixData, order.total);
+                            if (pixData.date_created) {
+                                this.startPaymentTimer(pixData.date_created);
+                            }
+                        } else if (statusData.status === 'paid') {
+                            // Se já foi pago, esconde seção de pagamento
+                            document.getElementById('payment-section').style.display = 'none';
+                            if (!this.paymentConfirmedToastDisplayed) {
+                                M.toast({html: 'Pagamento confirmado!', classes: 'green'});
+                                this.paymentConfirmedToastDisplayed = true;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erro ao verificar pagamento existente:', error);
+                        // Se der erro ao verificar pagamento existente, tenta gerar novo
+                        await this.loadPaymentDetails(order);
+                    }
+                } else if (order.paymentStatus === 'pending') {
+                    // Se não tem paymentId e está pendente, gera novo pagamento
+                    await this.loadPaymentDetails(order);
+                }
+            } else if (order.status === 'cancelled') {
+                // Se o pedido já está cancelado, mostra seção de expirado
+                document.getElementById('payment-section').style.display = 'none';
+                document.getElementById('payment-expired-section').style.display = 'block';
             }
         } catch (error) {
             console.error('Erro ao carregar detalhes do pedido:', error);
@@ -79,8 +124,8 @@ class OrderTracker {
                     orderId: order.orderNumber,
                     amount: order.total,
                     customer: {
-                        whatsapp: order.whatsapp,
-                        cpf: order.cpf
+                        phone: order.customer.phone,
+                        cpf: order.customer.cpf.replace(/\D/g, '')
                     }
                 })
             });
@@ -114,21 +159,35 @@ class OrderTracker {
 
     async checkPaymentStatus(order) {
         try {
+            if (!order.paymentId) {
+                throw new Error('PaymentId não encontrado');
+            }
+
             const response = await fetch(`/api/payment/status/${order.paymentId}`);
             if (!response.ok) throw new Error('Erro ao verificar pagamento');
             
-            const { status } = await response.json();
+            const { status, orderStatus, pixExpired } = await response.json();
+
+            // Se o PIX expirou, mostrar mensagem e esconder seção de pagamento
+            if (status === 'expired' || pixExpired) {
+                document.getElementById('payment-section').style.display = 'none';
+                document.getElementById('payment-expired-section').style.display = 'block';
+                clearInterval(this.paymentTimer);
+                localStorage.removeItem('pixCreationDate');
+                
+                if (!this.pixExpiredToastDisplayed) {
+                    M.toast({html: 'O tempo para pagamento expirou. Pedido cancelado.', classes: 'red'});
+                    this.pixExpiredToastDisplayed = true;
+                }
+                
+                this.updateStatusTimeline('cancelled');
+                return;
+            }
 
             if (status === 'pending') {
-                if (order.paymentId) {
-                    const paymentData = await this.getExistingPixData(order.paymentId);
-                    this.showPaymentSection(paymentData, order.total);
-                    // Inicia o timer com a data existente do PIX
-                    if (paymentData.createdAt) {
-                        this.startPaymentTimer(paymentData.createdAt);
-                    }
-                }
-            } else if (status === 'approved') {
+                const paymentData = await this.getExistingPixData(order.paymentId);
+                this.showPaymentSection(paymentData, order.total);
+            } else if (status === 'paid') {
                 document.getElementById('payment-section').style.display = 'none';
                 if (!this.paymentConfirmedToastDisplayed) {
                     M.toast({html: 'Pagamento confirmado!', classes: 'green'});
@@ -137,14 +196,51 @@ class OrderTracker {
             }
         } catch (error) {
             console.error('Erro ao verificar status:', error);
-            M.toast({html: 'Erro ao verificar status do pagamento', classes: 'red'});
+            // Se houver erro ao verificar status, tenta gerar novo pagamento
+            await this.loadPaymentDetails(order);
         }
     }
 
     async getExistingPixData(paymentId) {
-        const response = await fetch(`/api/payment/pix-data/${paymentId}`);
-        if (!response.ok) throw new Error('Erro ao recuperar dados do PIX');
-        return await response.json();
+        try {
+            if (!paymentId) {
+                throw new Error('PaymentId não fornecido');
+            }
+
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/payment/pix-data/${paymentId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+
+            if (response.status === 404 || data.status === 'expired') {
+                document.getElementById('payment-section').style.display = 'none';
+                document.getElementById('payment-expired-section').style.display = 'block';
+                clearInterval(this.paymentTimer);
+                localStorage.removeItem('pixCreationDate');
+                
+                if (!this.pixExpiredToastDisplayed) {
+                    M.toast({html: 'O tempo para pagamento expirou. Pedido cancelado.', classes: 'red'});
+                    this.pixExpiredToastDisplayed = true;
+                }
+                
+                this.updateStatusTimeline('cancelled');
+                throw new Error('PIX expirado');
+            }
+
+            if (!response.ok) {
+                throw new Error('Erro ao recuperar dados do PIX');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Erro ao buscar dados do PIX:', error);
+            throw error;
+        }
     }
 
     updateOrderDisplay(order) {
@@ -160,20 +256,20 @@ class OrderTracker {
 
         this.updateStatusTimeline(order.status);
         this.updateOrderItems(order);
-        this.startPaymentTimer(order.createdAt);
     }
 
     updateStatusTimeline(status) {
         const timeline = document.getElementById('status-timeline');
         const statusSteps = [
-            { key: 'pending', text: 'Pedido Realizado', icon: 'receipt' },
-            { key: 'confirmed', text: 'Pedido Confirmado', icon: 'check_circle' },
-            { key: 'preparing', text: 'Em Preparação', icon: 'local_shipping' },
-            { key: 'delivering', text: 'Em Entrega', icon: 'delivery_dining' },
-            { key: 'delivered', text: 'Entregue', icon: 'done_all' }
+            { key: 'PENDING', text: 'Pedido Realizado', icon: 'receipt' },
+            { key: 'CONFIRMED', text: 'Pedido Confirmado', icon: 'check_circle' },
+            { key: 'PREPARING', text: 'Em Preparação', icon: 'local_shipping' },
+            { key: 'DELIVERING', text: 'Em Entrega', icon: 'delivery_dining' },
+            { key: 'DELIVERED', text: 'Entregue', icon: 'done_all' },
+            { key: 'CANCELLED', text: 'Cancelado', icon: 'cancel' }
         ];
 
-        const currentStep = statusSteps.findIndex(step => step.key === status.toLowerCase());
+        const currentStep = statusSteps.findIndex(step => step.key === status.toUpperCase());
         
         timeline.innerHTML = statusSteps.map((step, index) => `
             <div class="timeline-item ${index <= currentStep ? 'active' : ''}">
@@ -200,40 +296,32 @@ class OrderTracker {
         document.getElementById('order-total').textContent = order.total.toFixed(2);
     }
 
-    showPaymentSection(paymentData, total) {
+    async showPaymentSection(paymentData, total) {
         document.getElementById('payment-section').style.display = 'block';
         document.getElementById('payment-amount').textContent = total.toFixed(2);
         document.getElementById('pix-qrcode').src = `data:image/png;base64,${paymentData.qrCodeImage}`;
         document.getElementById('pix-code').value = paymentData.pixCopiaECola;
         M.textareaAutoResize(document.getElementById('pix-code'));
+
+        // Inicia o timer com a data de criação do pagamento
+        if (paymentData.createdAt) {
+            this.startPaymentTimer(new Date(paymentData.createdAt));
+        }
     }
 
-    startPaymentTimer(pixCreationDate) {
+    startPaymentTimer(creationDate) {
         if (this.paymentTimer) {
             clearInterval(this.paymentTimer);
         }
 
-        // Salva a data de criação no localStorage
-        if (pixCreationDate) {
-            localStorage.setItem('pixCreationDate', pixCreationDate);
-        } else {
-            // Tenta recuperar a data do localStorage
-            pixCreationDate = localStorage.getItem('pixCreationDate');
-            if (!pixCreationDate) {
-                console.error('Data de criação do PIX não encontrada');
-                return;
-            }
-        }
-
-        const creationTime = new Date(pixCreationDate).getTime();
-        const expirationTime = creationTime + (15 * 60 * 1000); // 15 minutos após a criação
+        const expirationTime = new Date(creationDate).getTime() + (15 * 60 * 1000); // 15 minutos após a criação
         const now = new Date().getTime();
 
         // Verifica se já expirou
         if (now >= expirationTime) {
             document.getElementById('payment-timer').textContent = 'Tempo expirado';
-            localStorage.removeItem('pixCreationDate');
-            window.location.reload(); // Recarrega para atualizar status
+            document.getElementById('payment-section').style.display = 'none';
+            document.getElementById('payment-expired-section').style.display = 'block';
             return;
         }
 
@@ -244,8 +332,16 @@ class OrderTracker {
             if (timeLeft <= 0) {
                 clearInterval(this.paymentTimer);
                 document.getElementById('payment-timer').textContent = 'Tempo expirado';
-                localStorage.removeItem('pixCreationDate');
-                window.location.reload(); // Recarrega para atualizar status
+                document.getElementById('payment-section').style.display = 'none';
+                document.getElementById('payment-expired-section').style.display = 'block';
+                
+                // Atualiza o status do pedido
+                this.updateStatusTimeline('cancelled');
+                
+                if (!this.pixExpiredToastDisplayed) {
+                    M.toast({html: 'O tempo para pagamento expirou. Pedido cancelado.', classes: 'red'});
+                    this.pixExpiredToastDisplayed = true;
+                }
                 return;
             }
 
@@ -263,7 +359,13 @@ class OrderTracker {
     startStatusCheck() {
         this.statusCheckInterval = setInterval(async () => {
             try {
-                const response = await fetch(`/api/orders/${this.orderNumber}`);
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/orders/${this.orderNumber}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (!response.ok) throw new Error('Erro ao verificar status');
                 
                 const order = await response.json();

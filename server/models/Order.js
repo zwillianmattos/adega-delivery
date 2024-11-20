@@ -44,7 +44,7 @@ const OrderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'refunded'],
+        enum: ['pending', 'approved', 'rejected', 'refunded', 'expired'],
         default: 'pending'
     },
     paymentMethod: {
@@ -59,6 +59,10 @@ const OrderSchema = new mongoose.Schema({
         creditCardBrand: String,
         creditCardLast4: String,
         transactionId: String
+    },
+    paymentId: {
+        type: String,
+        index: true
     }
 }, {
     timestamps: true
