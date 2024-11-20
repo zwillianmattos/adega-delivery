@@ -16,6 +16,12 @@ class OrderTracker {
         try {
             await this.loadOrderDetails();
             this.startStatusCheck();
+            
+            // Verifica se existe um timer salvo ao carregar a página
+            const savedPixDate = localStorage.getItem('pixCreationDate');
+            if (savedPixDate) {
+                this.startPaymentTimer(savedPixDate); // Usa a data salva
+            }
         } catch (error) {
             console.error('Erro ao inicializar tracking:', error);
             M.toast({html: 'Erro ao carregar pedido', classes: 'red'});
@@ -57,7 +63,10 @@ class OrderTracker {
             
             const paymentData = await response.json();
             this.showPaymentSection(paymentData, order.total);
-            this.startPaymentTimer();
+            // Inicia o timer com a data de criação do PIX
+            if (paymentData.createdAt) {
+                this.startPaymentTimer(paymentData.createdAt);
+            }
             
         } catch (error) {
             console.error('Erro ao carregar dados de pagamento:', error);
@@ -88,7 +97,10 @@ class OrderTracker {
                 if (order.paymentId) {
                     const paymentData = await this.getExistingPixData(order.paymentId);
                     this.showPaymentSection(paymentData, order.total);
-                    this.startPaymentTimer();
+                    // Inicia o timer com a data existente do PIX
+                    if (paymentData.createdAt) {
+                        this.startPaymentTimer(paymentData.createdAt);
+                    }
                 }
             } else if (status === 'paid') {
                 document.getElementById('payment-section').style.display = 'none';
@@ -122,6 +134,7 @@ class OrderTracker {
 
         this.updateStatusTimeline(order.status);
         this.updateOrderItems(order);
+        this.startPaymentTimer(order.createdAt);
     }
 
     updateStatusTimeline(status) {
@@ -169,23 +182,56 @@ class OrderTracker {
         M.textareaAutoResize(document.getElementById('pix-code'));
     }
 
-    startPaymentTimer() {
-        let timeLeft = 15 * 60; // 15 minutos
-        const timerDisplay = document.getElementById('payment-timer');
+    startPaymentTimer(pixCreationDate) {
+        if (this.paymentTimer) {
+            clearInterval(this.paymentTimer);
+        }
 
-        this.paymentTimer = setInterval(() => {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            
-            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
+        // Salva a data de criação no localStorage
+        if (pixCreationDate) {
+            localStorage.setItem('pixCreationDate', pixCreationDate);
+        } else {
+            // Tenta recuperar a data do localStorage
+            pixCreationDate = localStorage.getItem('pixCreationDate');
+            if (!pixCreationDate) {
+                console.error('Data de criação do PIX não encontrada');
+                return;
+            }
+        }
+
+        const creationTime = new Date(pixCreationDate).getTime();
+        const expirationTime = creationTime + (15 * 60 * 1000); // 15 minutos após a criação
+        const now = new Date().getTime();
+
+        // Verifica se já expirou
+        if (now >= expirationTime) {
+            document.getElementById('payment-timer').textContent = 'Tempo expirado';
+            localStorage.removeItem('pixCreationDate');
+            window.location.reload(); // Recarrega para atualizar status
+            return;
+        }
+
+        const updateTimer = () => {
+            const currentTime = new Date().getTime();
+            const timeLeft = expirationTime - currentTime;
+
             if (timeLeft <= 0) {
                 clearInterval(this.paymentTimer);
+                document.getElementById('payment-timer').textContent = 'Tempo expirado';
+                localStorage.removeItem('pixCreationDate');
                 window.location.reload(); // Recarrega para atualizar status
+                return;
             }
-            
-            timeLeft--;
-        }, 1000);
+
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById('payment-timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        updateTimer(); // Atualiza imediatamente
+        this.paymentTimer = setInterval(updateTimer, 1000);
     }
 
     startStatusCheck() {

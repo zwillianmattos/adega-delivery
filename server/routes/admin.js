@@ -38,7 +38,7 @@ router.post('/login', async (req, res) => {
 router.get('/orders', auth, async (req, res) => {
     try {
         const filter = {
-            
+            paymentStatus: 'paid'
         };
         
         if (req.query.status && req.query.status !== 'all') {

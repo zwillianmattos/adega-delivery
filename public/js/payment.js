@@ -213,6 +213,60 @@ class PaymentManager {
     }
 }
 
+function startPaymentTimer(pixCreationDate) {
+    // Salva a data de criação no localStorage
+    if (pixCreationDate) {
+        localStorage.setItem('pixCreationDate', pixCreationDate);
+    } else {
+        // Tenta recuperar a data do localStorage
+        pixCreationDate = localStorage.getItem('pixCreationDate');
+        if (!pixCreationDate) {
+            console.error('Data de criação do PIX não encontrada');
+            return;
+        }
+    }
+
+    const creationTime = new Date(pixCreationDate).getTime();
+    const expirationTime = creationTime + (15 * 60 * 1000); // 15 minutos após a criação
+    const now = new Date().getTime();
+
+    // Verifica se já expirou
+    if (now >= expirationTime) {
+        document.getElementById('payment-timer').innerHTML = 'Tempo expirado';
+        localStorage.removeItem('pixCreationDate'); // Limpa a data expirada
+        return;
+    }
+
+    function updateTimer() {
+        const currentTime = new Date().getTime();
+        const timeLeft = expirationTime - currentTime;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            document.getElementById('payment-timer').innerHTML = 'Tempo expirado';
+            localStorage.removeItem('pixCreationDate'); // Limpa a data expirada
+            return;
+        }
+
+        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+        document.getElementById('payment-timer').innerHTML = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 1000);
+}
+
+// Quando a página carregar, iniciar o timer se houver uma data salva
+document.addEventListener('DOMContentLoaded', () => {
+    const savedPixDate = localStorage.getItem('pixCreationDate');
+    if (savedPixDate) {
+        startPaymentTimer(null);
+    }
+});
+
 // Inicializar o gerenciador de pagamento apenas após o carrinho estar disponível
 document.addEventListener('DOMContentLoaded', () => {
     // Aguardar um momento para garantir que o cart foi inicializado
