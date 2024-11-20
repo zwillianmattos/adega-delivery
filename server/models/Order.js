@@ -48,6 +48,31 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'paid', 'failed'],
         default: 'pending'
+    },
+    customer: {
+        address: {
+            street: {
+                type: String,
+                required: true
+            },
+            number: {
+                type: String,
+                required: true
+            },
+            complement: String,
+            neighborhood: {
+                type: String,
+                required: true
+            },
+            city: {
+                type: String,
+                required: true
+            },
+            zipcode: {
+                type: String,
+                required: true
+            }
+        }
     }
 }, {
     timestamps: true

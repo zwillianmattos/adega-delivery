@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
@@ -11,10 +13,10 @@ const PORT = process.env.PORT || 3000;
 
 mongoose.set('strictQuery', true);
 
-const DB_USER = 'teste';
-const DB_PASS = 'rGKr7HKsa5WMet64'; 
-const DB_CLUSTER = 'cluster0.n3j8j.mongodb.net';
-const DB_NAME = 'adega-delivery';
+const DB_USER = process.env.DB_USER;
+const DB_PASS = process.env.DB_PASS; 
+const DB_CLUSTER = process.env.DB_CLUSTER;
+const DB_NAME = process.env.DB_NAME;
 
 const mongoURI = `mongodb+srv://${DB_USER}:${DB_PASS}@${DB_CLUSTER}/${DB_NAME}?retryWrites=true&w=majority`;
 
@@ -123,12 +125,14 @@ app.post('/api/webhook/mercadopago', async (req, res) => {
         
         if (type === 'payment') {
             const { id } = data;
-            // Processar pagamento
-            const order = await Order.findOne({ paymentId: id });
-            if (order) {
-                order.paymentStatus = 'paid';
-                order.status = 'confirmed';
-                await order.save();
+            const paymentResponse = await payment.get({ id });
+            if (paymentResponse.status === 'approved') {
+                const order = await Order.findOne({ paymentId: id });
+                if (order) {
+                    order.paymentStatus = 'paid';
+                    order.status = 'confirmed';
+                    await order.save();
+                }
             }
         }
         

@@ -28,7 +28,7 @@ class OrderTracker {
         
         const order = await response.json();
         this.updateOrderDisplay(order);
-        
+        this.showAddressSection(order.customer.address);
         if (order.status === 'pending' && order.paymentStatus === 'pending' && !order.paymentId) {
             await this.loadPaymentDetails(order);
         } else if (order.paymentId) {
@@ -65,13 +65,25 @@ class OrderTracker {
         }
     }
 
+    showAddressSection(address) {
+        document.getElementById('address-section').style.display = 'block';
+
+        document.getElementById('recipient-name').textContent = address.recipient;
+        document.getElementById('street').textContent = address.street;
+        document.getElementById('number').textContent = address.number;
+        document.getElementById('complement').textContent = address.complement;
+        document.getElementById('neighborhood').textContent = address.neighborhood;
+        document.getElementById('city').textContent = address.city;
+        document.getElementById('zipcode').textContent = address.zipcode;
+    }
+
     async checkPaymentStatus(order) {
         try {
             const response = await fetch(`/api/payment/status/${order.paymentId}`);
             if (!response.ok) throw new Error('Erro ao verificar pagamento');
             
             const { status } = await response.json();
-            
+
             if (status === 'pending') {
                 if (order.paymentId) {
                     const paymentData = await this.getExistingPixData(order.paymentId);
@@ -80,7 +92,10 @@ class OrderTracker {
                 }
             } else if (status === 'paid') {
                 document.getElementById('payment-section').style.display = 'none';
-                M.toast({html: 'Pagamento confirmado!', classes: 'green'});
+                if (!this.paymentConfirmedToastDisplayed) {
+                    M.toast({html: 'Pagamento confirmado!', classes: 'green'});
+                    this.paymentConfirmedToastDisplayed = true;
+                }
             }
         } catch (error) {
             console.error('Erro ao verificar status:', error);
@@ -185,7 +200,7 @@ class OrderTracker {
                 if (order.paymentId) {
                     await this.checkPaymentStatus(order);
                 }
-
+                
                 if (order.status !== 'pending' || order.paymentStatus === 'paid') {
                     document.getElementById('payment-section').style.display = 'none';
                     clearInterval(this.paymentTimer);

@@ -1,17 +1,96 @@
 class PaymentManager {
     constructor() {
+        // Referência ao carrinho
+        this.cart = window.cart;
         this.setupEventListeners();
     }
 
     setupEventListeners() {
+        // Adicionar o evento de busca de CEP
+        const cepInput = document.getElementById('checkout-cep');
+        cepInput.addEventListener('blur', () => this.searchCEP(cepInput.value));
+
         // Botão de finalizar no carrinho
         document.getElementById('checkout-btn').addEventListener('click', () => {
             this.showCheckoutModal();
         });
 
         // Botão de confirmar pedido
-        document.getElementById('confirm-order-btn').addEventListener('click', () => {
-            this.handleOrderConfirmation();
+        document.getElementById('confirm-order-btn').addEventListener('click', async () => {
+            const whatsapp = document.getElementById('checkout-whatsapp').value.replace(/\D/g, '');
+            const cpf = document.getElementById('checkout-cpf').value.replace(/\D/g, '');
+            const street = document.getElementById('checkout-street').value;
+            const number = document.getElementById('checkout-number').value;
+            const complement = document.getElementById('checkout-complement').value;
+            const neighborhood = document.getElementById('checkout-neighborhood').value;
+            const city = document.getElementById('checkout-city').value;
+
+            // Validação dos campos
+            if (!whatsapp || !cpf || !street || !number || !neighborhood) {
+                M.toast({html: 'Por favor, preencha todos os campos obrigatórios', classes: 'red'});
+                return;
+            }
+
+            if (!/^\d{11}$/.test(whatsapp)) {
+                M.toast({html: 'WhatsApp inválido', classes: 'red'});
+                return;
+            }
+
+            if (!this.validateCPF(cpf)) {
+                M.toast({html: 'CPF inválido', classes: 'red'});
+                return;
+            }
+
+            const address = {
+                street,
+                number,
+                complement,
+                neighborhood,
+                city
+            };
+
+            try {
+                const orderData = {
+                    whatsapp,
+                    cpf,
+                    items: this.cart.items,
+                    total: this.cart.getTotal() + 5.00,
+                    subtotal: this.cart.getTotal(),
+                    deliveryFee: 5.00,
+                    customer: {
+                        address
+                    }
+                };
+
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Erro ao criar pedido');
+                }
+                
+                const order = await response.json();
+                
+                // Limpar carrinho
+                this.cart.clear();
+                
+                // Fechar modal de checkout
+                M.Modal.getInstance(document.getElementById('checkout-modal')).close();
+                
+                // Mostrar sucesso e redirecionar para acompanhamento
+                M.toast({html: 'Pedido criado com sucesso!', classes: 'green'});
+                window.location.href = `/tracking.html?order=${order.orderNumber}`;
+
+            } catch (error) {
+                console.error('Erro ao processar pedido:', error);
+                M.toast({html: 'Erro ao processar pedido', classes: 'red'});
+            }
         });
     }
 
@@ -31,70 +110,6 @@ class PaymentManager {
         // Fechar modal do carrinho e abrir modal de checkout
         M.Modal.getInstance(document.getElementById('cart-modal')).close();
         M.Modal.getInstance(document.getElementById('checkout-modal')).open();
-    }
-
-    async handleOrderConfirmation() {
-        const whatsapp = document.getElementById('checkout-whatsapp').value.replace(/\D/g, '');
-        const cpf = document.getElementById('checkout-cpf').value.replace(/\D/g, '');
-
-        // Validações
-        if (!/^\d{11}$/.test(whatsapp)) {
-            M.toast({html: 'WhatsApp inválido', classes: 'red'});
-            return;
-        }
-
-        if (!this.validateCPF(cpf)) {
-            M.toast({html: 'CPF inválido', classes: 'red'});
-            return;
-        }
-
-        try {
-            // Criar pedido - Corrigindo o formato dos dados
-            const orderData = {
-                whatsapp,
-                cpf, // Adicionando CPF diretamente no objeto principal
-                items: cart.map(item => ({
-                    productId: item.productId,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity
-                })),
-                total: parseFloat(document.getElementById('checkout-total').textContent),
-                subtotal: parseFloat(document.getElementById('checkout-subtotal').textContent),
-                deliveryFee: 5.00,
-                status: 'pending',
-                paymentStatus: 'pending'
-            };
-
-            const response = await fetch('/api/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(orderData)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Erro ao criar pedido');
-            }
-            
-            const order = await response.json();
-            
-            // Limpar carrinho
-            clearCart();
-            
-            // Fechar modal de checkout
-            M.Modal.getInstance(document.getElementById('checkout-modal')).close();
-            
-            // Mostrar sucesso e redirecionar para acompanhamento
-            M.toast({html: 'Pedido criado com sucesso!', classes: 'green'});
-            window.location.href = `/tracking.html?order=${order.orderNumber}`;
-
-        } catch (error) {
-            console.error('Erro ao confirmar pedido:', error);
-            M.toast({html: error.message || 'Erro ao criar pedido', classes: 'red'});
-        }
     }
 
     validateCPF(cpf) {
@@ -130,9 +145,82 @@ class PaymentManager {
             return false;        
         return true;
     }
+
+    async searchCEP(cep) {
+        // Remove tudo que não for número
+        cep = cep.replace(/\D/g, '');
+
+        if (cep.length !== 8) {
+            M.toast({html: 'CEP inválido', classes: 'red'});
+            return;
+        }
+
+        try {
+            // Adiciona feedback visual durante a busca
+            const streetInput = document.getElementById('checkout-street');
+            const neighborhoodInput = document.getElementById('checkout-neighborhood');
+            const cityInput = document.getElementById('checkout-city');
+            
+            streetInput.value = 'Buscando...';
+            neighborhoodInput.value = 'Buscando...';
+            M.updateTextFields(); // Atualiza os labels do Materialize
+
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+
+            if (data.erro) {
+                throw new Error('CEP não encontrado');
+            }
+
+            // Preenche os campos com os dados retornados
+            document.getElementById('checkout-street').value = data.logradouro;
+            document.getElementById('checkout-neighborhood').value = data.bairro;
+            document.getElementById('checkout-city').value = data.localidade;
+
+            // Se o CEP for de fora de São Paulo
+            if (data.localidade !== 'Agudos') {
+                M.toast({html: 'Desculpe, não atendemos esta localidade', classes: 'red'});
+                this.clearAddressFields();
+                return;
+            }
+
+            // Se o logradouro vier vazio, deixa o campo editável
+            if (!data.logradouro) {
+                document.getElementById('checkout-street').removeAttribute('readonly');
+            } else {
+                document.getElementById('checkout-street').setAttribute('readonly', 'readonly');
+            }
+
+            // Foca no campo número após preenchimento
+            document.getElementById('checkout-number').focus();
+
+            M.updateTextFields(); // Atualiza os labels do Materialize
+
+        } catch (error) {
+            console.error('Erro ao buscar CEP:', error);
+            M.toast({html: 'Erro ao buscar CEP', classes: 'red'});
+            this.clearAddressFields();
+        }
+    }
+
+    clearAddressFields() {
+        document.getElementById('checkout-street').value = '';
+        document.getElementById('checkout-neighborhood').value = '';
+        document.getElementById('checkout-city').value = 'São Paulo';
+        document.getElementById('checkout-street').removeAttribute('readonly');
+        M.updateTextFields();
+    }
 }
 
-// Inicializar o gerenciador de pagamento
+// Inicializar o gerenciador de pagamento apenas após o carrinho estar disponível
 document.addEventListener('DOMContentLoaded', () => {
-    const paymentManager = new PaymentManager();
+    // Aguardar um momento para garantir que o cart foi inicializado
+    setTimeout(() => {
+        if (window.cart) {
+            const paymentManager = new PaymentManager();
+        } else {
+            console.error('Carrinho não encontrado');
+            M.toast({html: 'Erro ao inicializar o pagamento', classes: 'red'});
+        }
+    }, 100);
 }); 
