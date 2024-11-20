@@ -7,6 +7,8 @@ const Product = require('./models/Product');
 const Order = require('./models/Order');
 const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
@@ -28,7 +30,15 @@ mongoose.connect(mongoURI, {
 app.use(express.json());
 app.use(express.static('public'));
 
+// Segurança
+app.use(helmet());
 
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100 // limite de 100 requisições por windowMs
+});
+app.use('/api/', limiter);
 
 // Rotas de produtos
 app.get('/api/products', async (req, res) => {

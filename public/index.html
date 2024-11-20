@@ -33,6 +33,7 @@
                             <span class="cart-badge" id="cart-count">0</span>
                         </a>
                     </li>
+                    
                 </ul>
             </div>
         </nav>
@@ -271,6 +272,7 @@
     <script src="/js/products.js"></script>
     <script src="/js/cart.js"></script>
     <script src="/js/payment.js"></script>
+    <script src="/js/session.js"></script>
     <script>
         // Funções para gerenciar Meus Pedidos
         function showMyOrders() {
@@ -315,19 +317,29 @@
 
         function displayMyOrders(orders) {
             const statusMap = {
-                pending: { text: 'Pendente', icon: 'hourglass_empty', color: 'orange' },
-                confirmed: { text: 'Confirmado', icon: 'check_circle', color: 'green' },
-                preparing: { text: 'Em Preparação', icon: 'local_shipping', color: 'blue' },
-                delivering: { text: 'Em Entrega', icon: 'delivery_dining', color: 'purple' },
-                delivered: { text: 'Entregue', icon: 'done_all', color: 'green' },
-                cancelled: { text: 'Cancelado', icon: 'cancel', color: 'red' }
+                'PENDING': { text: 'Pendente', icon: 'hourglass_empty', color: 'orange' },
+                'CONFIRMED': { text: 'Confirmado', icon: 'check_circle', color: 'green' },
+                'PREPARING': { text: 'Em Preparação', icon: 'local_shipping', color: 'blue' },
+                'DELIVERING': { text: 'Em Entrega', icon: 'delivery_dining', color: 'purple' },
+                'DELIVERED': { text: 'Entregue', icon: 'done_all', color: 'green' },
+                'CANCELLED': { text: 'Cancelado', icon: 'cancel', color: 'red' }
+            };
+
+            const getStatusInfo = (statusKey) => {
+                // Converter para maiúsculas e remover espaços para normalizar o status
+                const normalizedStatus = statusKey?.toUpperCase().trim() || 'PENDING';
+                return statusMap[normalizedStatus] || { 
+                    text: 'Status Desconhecido', 
+                    icon: 'help_outline', 
+                    color: 'grey' 
+                };
             };
 
             const ordersList = document.getElementById('my-orders-list');
             ordersList.innerHTML = `
                 <div class="collection">
                     ${orders.map(order => {
-                        const status = statusMap[order.status];
+                        const status = getStatusInfo(order.status);
                         const date = new Date(order.createdAt).toLocaleDateString('pt-BR', {
                             day: '2-digit',
                             month: '2-digit',
@@ -355,16 +367,16 @@
                                         Endereço de Entrega
                                     </div>
                                     <div class="address-details">
-                                        <p>${order.customer.address.street}, ${order.customer.address.number}</p>
-                                        ${order.customer.address.complement ? 
+                                        <p>${order.customer?.address?.street || ''}, ${order.customer?.address?.number || ''}</p>
+                                        ${order.customer?.address?.complement ? 
                                             `<p>Complemento: ${order.customer.address.complement}</p>` : ''}
-                                        <p>${order.customer.address.neighborhood}</p>
-                                        <p>${order.customer.address.city}</p>
+                                        <p>${order.customer?.address?.neighborhood || ''}</p>
+                                        <p>${order.customer?.address?.city || ''}</p>
                                     </div>
                                 </div>
 
                                 <div class="order-items">
-                                    ${order.items.map(item => `
+                                    ${(order.items || []).map(item => `
                                         <div class="order-item">
                                             ${item.quantity}x ${item.name}
                                             <span class="right">R$ ${(item.price * item.quantity).toFixed(2)}</span>
@@ -374,9 +386,9 @@
 
                                 <div class="order-total">
                                     <a class="modal-trigger" href="tracking.html?order=${order.orderNumber}">Ver detalhes</a>
-                                    <div>Subtotal: R$ ${order.subtotal.toFixed(2)}</div>
-                                    <div>Taxa de entrega: R$ ${order.deliveryFee.toFixed(2)}</div>
-                                    <div class="total">Total: R$ ${order.total.toFixed(2)}</div>
+                                    <div>Subtotal: R$ ${(order.subtotal || 0).toFixed(2)}</div>
+                                    <div>Taxa de entrega: R$ ${(order.deliveryFee || 0).toFixed(2)}</div>
+                                    <div class="total">Total: R$ ${(order.total || 0).toFixed(2)}</div>
                                 </div>
                             </div>
                         `;
@@ -411,6 +423,50 @@
             const observer = new MutationObserver(updateMobileCartBadge);
             observer.observe(cartBadge, { characterData: true, childList: true, subtree: true });
         });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileButton = document.getElementById('profileButton');
+            const profileInfo = document.getElementById('profileInfo');
+            const profileModal = document.getElementById('profile-modal');
+            const whatsappInput = document.getElementById('profile-whatsapp');
+            const cpfInput = document.getElementById('profile-cpf');
+            
+            // Inicializar modal
+            M.Modal.init(profileModal);
+            
+            // Carregar dados salvos
+            const userInfo = SessionManager.getUserInfo();
+            if (userInfo.whatsapp) {
+                whatsappInput.value = userInfo.whatsapp;
+                profileInfo.textContent = userInfo.whatsapp;
+            }
+            if (userInfo.cpf) {
+                cpfInput.value = userInfo.cpf;
+            }
+            M.updateTextFields();
+
+            // Abrir modal ao clicar no botão de perfil
+            profileButton.onclick = () => {
+                const modal = M.Modal.getInstance(profileModal);
+                modal.open();
+            };
+
+            // Salvar dados do perfil
+            document.getElementById('save-profile-btn').onclick = () => {
+                const whatsapp = whatsappInput.value.replace(/\D/g, '');
+                const cpf = cpfInput.value.replace(/\D/g, '');
+
+                if (!/^\d{11}$/.test(whatsapp)) {
+                    M.toast({html: 'WhatsApp inválido', classes: 'red'});
+            if (SessionManager.isAuthenticated()) {
+                authButtonText.textContent = 'Sair';
+                authButton.onclick = () => SessionManager.logout();
+            } else {
+                authButtonText.textContent = 'Entrar';
+                authButton.onclick = () => SessionManager.redirectToAuth();
+            }
+        }}});
+
     </script>
 </body>
 </html> 

@@ -171,7 +171,7 @@ function displayOrders(orders) {
     ordersList.innerHTML = orders.map(order => `
         <div class="order-card">
             <div class="order-header">
-                <span class="order-id">#${order.orderNumber}</span>
+                <span class="order-id">${order.orderNumber}</span>
                 <span class="order-status status-${order.status.toLowerCase()}">${getStatusText(order.status)}</span>
             </div>
             <div class="order-customer">

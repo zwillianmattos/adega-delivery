@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação de Idade - Adega Delivery</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="/css/age-verification.css">
+</head>
+<body>
+    <div class="container">
+        <div class="age-verification-card">
+            <div class="card">
+                <div class="card-content">
+                    <div class="logo-container center-align">
+                        <span class="logo">🍷</span>
+                        <h4 class="brand-title">Adega Delivery</h4>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <div class="section verification-content">
+                        <h5 class="center-align">Verificação de Idade</h5>
+                        <p class="center-align disclaimer">
+                            De acordo com a legislação brasileira, a venda e o consumo 
+                            de bebidas alcoólicas são permitidos apenas para maiores de 18 anos.
+                        </p>
+                        <p class="center-align">Por favor, informe sua data de nascimento:</p>
+                        
+                        <div class="row date-inputs">
+                            <div class="input-field col s4">
+                                <select id="birthDay" class="validate" required>
+                                    <option value="" disabled selected>Dia</option>
+                                </select>
+                                <label>Dia</label>
+                            </div>
+                            <div class="input-field col s4">
+                                <select id="birthMonth" class="validate" required>
+                                    <option value="" disabled selected>Mês</option>
+                                    <option value="1">Janeiro</option>
+                                    <option value="2">Fevereiro</option>
+                                    <option value="3">Março</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Maio</option>
+                                    <option value="6">Junho</option>
+                                    <option value="7">Julho</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
+                                </select>
+                                <label>Mês</label>
+                            </div>
+                            <div class="input-field col s4">
+                                <select id="birthYear" class="validate" required>
+                                    <option value="" disabled selected>Ano</option>
+                                </select>
+                                <label>Ano</label>
+                            </div>
+                        </div>
+                        
+                        <div class="center-align button-container">
+                            <button id="verifyAge" class="btn-large waves-effect waves-light red accent-2">
+                                Confirmar Idade
+                                <i class="material-icons right">check_circle</i>
+                            </button>
+                        </div>
+
+                        <p class="center-align terms">
+                            Ao prosseguir, você confirma que é maior de 18 anos e 
+                            concorda com nossos <a href="#">Termos de Uso</a> e 
+                            <a href="#">Política de Privacidade</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <div class="footer-copyright">
+            <div class="container center-align">
+                © 2024 Adega Delivery - Beba com moderação
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="/js/session.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar selects do Materialize
+            const elems = document.querySelectorAll('select');
+            
+            // Preencher dias
+            const daySelect = document.getElementById('birthDay');
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i.toString();
+                option.textContent = i.toString().padStart(2, '0');
+                daySelect.appendChild(option);
+            }
+
+            // Preencher anos (120 anos atrás até hoje)
+            const yearSelect = document.getElementById('birthYear');
+            const currentYear = new Date().getFullYear();
+            for (let i = currentYear; i >= currentYear - 120; i--) {
+                const option = document.createElement('option');
+                option.value = i.toString();
+                option.textContent = i.toString();
+                yearSelect.appendChild(option);
+            }
+
+            // Inicializar os selects APÓS adicionar as opções
+            M.FormSelect.init(elems);
+
+            // Manipular verificação de idade
+            const verifyAgeButton = document.getElementById('verifyAge');
+            verifyAgeButton.addEventListener('click', function() {
+                const day = document.getElementById('birthDay').value;
+                const month = document.getElementById('birthMonth').value;
+                const year = document.getElementById('birthYear').value;
+
+                if (!day || !month || !year) {
+                    M.toast({
+                        html: 'Por favor, preencha sua data de nascimento completa',
+                        classes: 'red'
+                    });
+                    return;
+                }
+
+                const birthDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+                SessionManager.verifyAge(birthDate)
+                    .then(() => {
+                        M.toast({
+                            html: 'Idade verificada com sucesso!',
+                            classes: 'green',
+                            displayLength: 1500
+                        });
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1500);
+                    })
+                    .catch(error => {
+                        M.toast({
+                            html: error.message,
+                            classes: 'red'
+                        });
+                    });
+            });
+        });
+    </script>
+</body>
+</html> 

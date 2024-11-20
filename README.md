@@ -1,31 +1,47 @@
 # Adega Delivery - MVP
 
-Sistema simples de delivery de bebidas alcoólicas, similar ao Zé Delivery.
+Sistema de delivery de bebidas alcoólicas, similar ao Zé Delivery.
 
 ## Funcionalidades
 
-- Catálogo de produtos
+### Funcionalidades do Cliente
+- Catálogo de produtos com busca e filtros
+- Verificação de idade (18+)
+- Verificação de área de entrega
 - Carrinho de compras
-- Finalização de pedido
-- Área administrativa para cadastro de produtos
-- Área administrativa para gestão de pedidos e relatórios
-- Integração com MongoDB
+- Sistema de pagamento
+- Acompanhamento de pedido em tempo real
+- Histórico de pedidos
+- Avaliação de produtos
+
+### Funcionalidades Administrativas
+- Dashboard administrativo
+- Gestão de produtos
+- Gestão de pedidos
+- Relatórios de vendas
+- Gestão de áreas de entrega
+- Controle de estoque
 
 ## Tecnologias Utilizadas
 
-- HTML
-- CSS
-- JavaScript
-- MongoDB
-- Node.js
-- Express.js
+- Frontend:
+  - HTML5
+  - CSS3
+  - JavaScript (ES6+)
+  - Socket.IO Client (real-time)
+  
+- Backend:
+  - Node.js
+  - Express.js
+  - MongoDB
+  - JWT (autenticação)
+  - Socket.IO (real-time)
+  - Nodemailer (emails)
+  
+- Segurança:
+  - Helmet
+  - CORS
+  - Rate Limiting
+  - Validação de dados (Joi)
 
-## Como Executar
-
-1. Instale o Node.js
-2. Instale o MongoDB
-3. Clone este repositório
-4. Execute `npm install` para instalar as dependências
-5. Execute `npm start` para iniciar o servidor
-6. Acesse `http://localhost:3000` no navegador
-7. Para acessar a área administrativa, acesse `http://localhost:3000/admin.html`
+## Estrutura do Projeto
