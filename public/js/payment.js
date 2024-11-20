@@ -24,7 +24,7 @@ class PaymentManager {
             const complement = document.getElementById('checkout-complement').value;
             const neighborhood = document.getElementById('checkout-neighborhood').value;
             const city = document.getElementById('checkout-city').value;
-
+            const cep = document.getElementById('checkout-cep').value.replace(/\D/g, '');
             // Validação dos campos
             if (!whatsapp || !cpf || !street || !number || !neighborhood) {
                 M.toast({html: 'Por favor, preencha todos os campos obrigatórios', classes: 'red'});
@@ -46,7 +46,8 @@ class PaymentManager {
                 number,
                 complement,
                 neighborhood,
-                city
+                city,
+                zipcode: cep
             };
 
             try {

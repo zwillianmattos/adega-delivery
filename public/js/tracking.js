@@ -29,7 +29,7 @@ class OrderTracker {
         const order = await response.json();
         this.updateOrderDisplay(order);
         this.showAddressSection(order.customer.address);
-        if (order.status === 'pending' && order.paymentStatus === 'pending' && !order.paymentId) {
+        if (order.status === 'PENDING' && order.paymentStatus === 'pending' && !order.paymentId) {
             await this.loadPaymentDetails(order);
         } else if (order.paymentId) {
             await this.checkPaymentStatus(order);
@@ -134,7 +134,7 @@ class OrderTracker {
             { key: 'delivered', text: 'Entregue', icon: 'done_all' }
         ];
 
-        const currentStep = statusSteps.findIndex(step => step.key === status);
+        const currentStep = statusSteps.findIndex(step => step.key === status.toLowerCase());
         
         timeline.innerHTML = statusSteps.map((step, index) => `
             <div class="timeline-item ${index <= currentStep ? 'active' : ''}">
@@ -201,7 +201,7 @@ class OrderTracker {
                     await this.checkPaymentStatus(order);
                 }
                 
-                if (order.status !== 'pending' || order.paymentStatus === 'paid') {
+                if (order.status !== 'PENDING' || order.paymentStatus === 'paid') {
                     document.getElementById('payment-section').style.display = 'none';
                     clearInterval(this.paymentTimer);
                 }

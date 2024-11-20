@@ -6,6 +6,7 @@ const path = require('path');
 const Product = require('./models/Product');
 const Order = require('./models/Order');
 const paymentRoutes = require('./routes/payment');
+const adminRoutes = require('./routes/admin');
 require('dotenv').config();
 
 const app = express();
@@ -13,12 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 mongoose.set('strictQuery', true);
 
-const DB_USER = process.env.DB_USER;
-const DB_PASS = process.env.DB_PASS; 
-const DB_CLUSTER = process.env.DB_CLUSTER;
-const DB_NAME = process.env.DB_NAME;
-
-const mongoURI = `mongodb+srv://${DB_USER}:${DB_PASS}@${DB_CLUSTER}/${DB_NAME}?retryWrites=true&w=majority`;
+const mongoURI = process.env.MONGODB_URI;
 
 mongoose.connect(mongoURI, {
     useNewUrlParser: true,
@@ -31,6 +27,8 @@ mongoose.connect(mongoURI, {
 
 app.use(express.json());
 app.use(express.static('public'));
+
+
 
 // Rotas de produtos
 app.get('/api/products', async (req, res) => {
@@ -116,6 +114,7 @@ app.get('/api/orders/:orderNumber', async (req, res) => {
 });
 
 // Rotas de pagamento
+app.use('/api/admin', adminRoutes);
 app.use('/api/payment', paymentRoutes);
 
 // Rota para webhook do Mercado Pago
@@ -140,6 +139,70 @@ app.post('/api/webhook/mercadopago', async (req, res) => {
     } catch (error) {
         console.error('Erro no webhook:', error);
         res.sendStatus(500);
+    }
+});
+
+// Rota para atualizar status do pedido
+app.put('/api/orders/:orderId/status', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+        
+        const order = await Order.findByIdAndUpdate(
+            orderId,
+            { status },
+            { new: true }
+        );
+        
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao atualizar status do pedido' });
+    }
+});
+
+// Rota para relatórios
+app.get('/api/reports/:period', async (req, res) => {
+    try {
+        const { period } = req.params;
+        let startDate = new Date();
+        
+        // Definir período do relatório
+        switch (period) {
+            case 'daily':
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case 'weekly':
+                startDate.setDate(startDate.getDate() - 7);
+                break;
+            case 'monthly':
+                startDate.setMonth(startDate.getMonth() - 1);
+                break;
+        }
+
+        // Buscar pedidos do período
+        const orders = await Order.find({
+            createdAt: { $gte: startDate }
+        });
+
+        // Calcular métricas
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+        const averageTicket = totalRevenue / totalOrders || 0;
+        
+        // Contar pedidos por status
+        const ordersByStatus = orders.reduce((acc, order) => {
+            acc[order.status] = (acc[order.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        res.json({
+            totalOrders,
+            totalRevenue,
+            averageTicket,
+            ordersByStatus
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao gerar relatório' });
     }
 });
 

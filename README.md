@@ -8,6 +8,7 @@ Sistema simples de delivery de bebidas alcoólicas, similar ao Zé Delivery.
 - Carrinho de compras
 - Finalização de pedido
 - Área administrativa para cadastro de produtos
+- Área administrativa para gestão de pedidos e relatórios
 - Integração com MongoDB
 
 ## Tecnologias Utilizadas
@@ -27,3 +28,4 @@ Sistema simples de delivery de bebidas alcoólicas, similar ao Zé Delivery.
 4. Execute `npm install` para instalar as dependências
 5. Execute `npm start` para iniciar o servidor
 6. Acesse `http://localhost:3000` no navegador
+7. Para acessar a área administrativa, acesse `http://localhost:3000/admin.html`

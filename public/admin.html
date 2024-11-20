@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adega Delivery - Área Administrativa</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <header>
+        <h1>Painel Administrativo</h1>
+    </header>
+
+    <main>
+        <section class="admin-section">
+            <h2>Gerenciamento de Pedidos</h2>
+            <div class="orders-controls">
+                <select id="order-status-filter">
+                    <option value="all">Todos os Pedidos Pagos</option>
+                    <option value="preparing">Em Preparação</option>
+                    <option value="delivering">Em Entrega</option>
+                    <option value="completed">Concluídos</option>
+                    <option value="cancelled">Cancelados</option>
+                </select>
+            </div>
+            <div id="orders-list" class="orders-container"></div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Relatórios</h2>
+            <div class="reports-controls">
+                <button onclick="generateReport('daily')">Relatório Diário</button>
+                <button onclick="generateReport('weekly')">Relatório Semanal</button>
+                <button onclick="generateReport('monthly')">Relatório Mensal</button>
+            </div>
+            <div id="report-results"></div>
+        </section>
+    </main>
+
+    <script src="js/admin.js"></script>
+</body>
+</html> 
