@@ -1,161 +1,266 @@
-function checkAuth() {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-        window.location.href = '/admin-login.html';
-        return false;
-    }
-    return token;
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa os filtros
+    const statusFilter = document.getElementById('order-status-filter');
+    statusFilter.addEventListener('change', loadOrders);
 
-async function loadOrders(status = 'all') {
-    const token = checkAuth();
-    if (!token) return;
+    loadDashboard();
+    loadCharts();
+    loadOrders();
 
+    // Atualiza os pedidos a cada 30 segundos
+    setInterval(loadOrders, 30000);
+});
+
+async function loadDashboard() {
     try {
-        const response = await fetch(`/api/admin/orders${status !== 'all' ? `?status=${status}` : ''}`, {
+        const response = await fetch('/api/admin/dashboard', {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             }
         });
         
-        if (response.status === 401) {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin-login.html';
+        if (!response.ok) throw new Error('Erro ao carregar dashboard');
+        
+        const data = await response.json();
+        
+        // Atualiza os cards do dashboard
+        document.querySelector('[data-metric="orders"]').textContent = data.totalOrdersToday;
+        document.querySelector('[data-metric="revenue"]').textContent = 
+            `R$ ${data.totalRevenueToday.toFixed(2)}`;
+        document.querySelector('[data-metric="ticket"]').textContent = 
+            `R$ ${data.averageTicket.toFixed(2)}`;
+        document.querySelector('[data-metric="completion"]').textContent = 
+            `${data.completionRate.toFixed(1)}%`;
+    } catch (error) {
+        console.error('Erro:', error);
+        M.toast({html: 'Erro ao carregar dados do dashboard'});
+    }
+}
+
+async function loadCharts() {
+    try {
+        const response = await fetch('/api/admin/charts', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Erro ao carregar gráficos');
+        
+        const data = await response.json();
+        
+        // Atualiza os gráficos com dados reais
+        updateSalesChart(data.hourlyOrders);
+        updateProductsChart(data.topProducts);
+    } catch (error) {
+        console.error('Erro:', error);
+        M.toast({html: 'Erro ao carregar dados dos gráficos'});
+    }
+}
+
+function updateSalesChart(hourlyData) {
+    const hours = Array.from({length: 24}, (_, i) => `${i}h`);
+    const salesData = Array.from({length: 24}, (_, i) => {
+        const hourData = hourlyData.find(d => d._id === i);
+        return hourData ? hourData.count : 0;
+    });
+
+    const salesCtx = document.getElementById('salesByHourChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Vendas',
+                data: salesData,
+                borderColor: '#ea1d2c',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateProductsChart(productsData) {
+    const productsCtx = document.getElementById('topProductsChart').getContext('2d');
+    new Chart(productsCtx, {
+        type: 'bar',
+        data: {
+            labels: productsData.map(p => p.name),
+            datasets: [{
+                label: 'Vendas',
+                data: productsData.map(p => p.totalSold),
+                backgroundColor: '#ea1d2c',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+async function loadOrders() {
+    try {
+        const statusFilter = document.getElementById('order-status-filter');
+        const status = statusFilter.value;
+        
+        let url = '/api/admin/orders';
+        if (status && status !== 'all') {
+            url += `?status=${status}`;
+        }
+
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Erro ao carregar pedidos');
+        
+        const orders = await response.json();
+        
+        if (orders.length === 0) {
+            const ordersList = document.getElementById('orders-list');
+            ordersList.innerHTML = `
+                <div class="center-align" style="padding: 20px; color: #666;">
+                    <i class="material-icons medium">info_outline</i>
+                    <p>Nenhum pedido encontrado</p>
+                </div>
+            `;
             return;
         }
 
-        if (!response.ok) throw new Error('Erro ao carregar pedidos');
-        const orders = await response.json();
         displayOrders(orders);
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao carregar pedidos');
+        M.toast({html: 'Erro ao carregar pedidos'});
     }
 }
 
 function displayOrders(orders) {
     const ordersList = document.getElementById('orders-list');
-    ordersList.innerHTML = '';
-
-    orders.forEach(order => {
-        const orderElement = document.createElement('div');
-        orderElement.className = 'order-card';
-        orderElement.innerHTML = `
+    ordersList.innerHTML = orders.map(order => `
+        <div class="order-card">
             <div class="order-header">
-                <h3>Pedido ${order.orderNumber}</h3>
-                <span class="order-date">${new Date(order.createdAt).toLocaleString()}</span>
+                <span class="order-id">#${order.orderNumber}</span>
+                <span class="order-status status-${order.status.toLowerCase()}">${getStatusText(order.status)}</span>
             </div>
-            <div class="order-details">
-                <p><strong>Cliente CPF:</strong> ${order.cpf}</p>
-                <p><strong>WhatsApp:</strong> ${order.whatsapp}</p>
-                <p><strong>Endereço:</strong> ${order.customer?.address.street}, ${order.customer?.address.number}, ${order.customer?.address.neighborhood}, ${order.customer?.address.city}</p>
-                <p><strong>Total:</strong> R$ ${order.total.toFixed(2)}</p>
-                <p><strong>Status:</strong> 
-                    <select class="status-select" onchange="updateOrderStatus('${order._id}', this.value)">
-                        <option value="preparing" ${order.status === 'preparing' ? 'selected' : ''}>Em Preparação</option>
-                        <option value="delivering" ${order.status === 'delivering' ? 'selected' : ''}>Em Entrega</option>
-                        <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Concluído</option>
-                        <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
-                    </select>
-                </p>
+            <div class="order-customer">
+                <i class="material-icons tiny">person</i>
+                ${order.whatsapp || 'Cliente'}
+            </div>
+            <div class="order-address">
+                <i class="material-icons tiny">location_on</i>
+                ${formatAddress(order.customer?.address)}
             </div>
             <div class="order-items">
-                <h4>Itens do Pedido:</h4>
-                <ul>
-                    ${order.items.map(item => `
-                        <li>${item.quantity}x ${item.name} - R$ ${(item.quantity * item.price).toFixed(2)}</li>
-                    `).join('')}
-                </ul>
+                ${order.items.map(item => `
+                    <div>${item.quantity}x ${item.name}</div>
+                `).join('')}
             </div>
-        `;
-        ordersList.appendChild(orderElement);
-    });
+            <div class="order-total">
+                Total: R$ ${order.total.toFixed(2)}
+            </div>
+            <div class="order-actions" style="margin-top: 12px;">
+                ${getOrderActions(order.status, order._id)}
+            </div>
+        </div>
+    `).join('');
+}
+
+function formatAddress(address) {
+    if (!address) return 'Endereço não disponível';
+    return `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''} - ${address.neighborhood}`;
+}
+
+function getStatusText(status) {
+    const statusMap = {
+        'PREPARING': 'Em Preparação',
+        'DELIVERING': 'Em Entrega',
+        'COMPLETED': 'Concluído',
+        'CANCELLED': 'Cancelado'
+    };
+    return statusMap[status] || status;
+}
+
+function getOrderActions(status, orderId) {
+    if (status === 'COMPLETED' || status === 'CANCELLED') return '';
+    
+    return `
+        <button class="btn waves-effect waves-light btn-small" 
+                onclick="updateOrderStatus('${orderId}', '${getNextStatus(status)}')">
+            ${getNextStatusText(status)}
+        </button>
+    `;
+}
+
+function getNextStatus(currentStatus) {
+    const statusFlow = {
+        'PREPARING': 'DELIVERING',
+        'DELIVERING': 'COMPLETED'
+    };
+    return statusFlow[currentStatus] || currentStatus;
+}
+
+function getNextStatusText(currentStatus) {
+    const statusFlow = {
+        'PREPARING': 'Enviar para Entrega',
+        'DELIVERING': 'Concluir Entrega'
+    };
+    return statusFlow[currentStatus] || '';
 }
 
 async function updateOrderStatus(orderId, newStatus) {
-    const token = checkAuth();
-    if (!token) return;
-
     try {
         const response = await fetch(`/api/admin/orders/${orderId}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             },
             body: JSON.stringify({ status: newStatus })
         });
-
-        if (response.status === 401) {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin-login.html';
-            return;
-        }
-
+        
         if (!response.ok) throw new Error('Erro ao atualizar status');
         
-        loadOrders(document.getElementById('order-status-filter').value);
+        await loadOrders(); // Aguarda o carregamento dos pedidos
+        M.toast({html: 'Status atualizado com sucesso'});
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao atualizar status do pedido');
+        M.toast({html: 'Erro ao atualizar status'});
     }
-}
-
-async function generateReport(period) {
-    const token = checkAuth();
-    if (!token) return;
-
-    try {
-        const response = await fetch(`/api/reports/${period}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.status === 401) {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin-login.html';
-            return;
-        }
-
-        if (!response.ok) throw new Error('Erro ao gerar relatório');
-        const report = await response.json();
-        displayReport(report, period);
-    } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        alert('Erro ao gerar relatório');
-    }
-}
-
-function displayReport(report, period) {
-    const reportResults = document.getElementById('report-results');
-    reportResults.innerHTML = `
-        <h3>Relatório ${period === 'daily' ? 'Diário' : 
-                       period === 'weekly' ? 'Semanal' : 'Mensal'}</h3>
-        <p>Total de Pedidos: ${report.totalOrders}</p>
-        <p>Faturamento: R$ ${report.totalRevenue.toFixed(2)}</p>
-        <p>Ticket Médio: R$ ${report.averageTicket.toFixed(2)}</p>
-        <p>Pedidos por Status:</p>
-        <ul>
-            ${Object.entries(report.ordersByStatus).map(([status, count]) => 
-                `<li>${status}: ${count}</li>`
-            ).join('')}
-        </ul>
-    `;
 }
 
 function logout() {
     localStorage.removeItem('adminToken');
     window.location.href = '/admin-login.html';
 }
-
-// Event listener para o filtro de status
-document.getElementById('order-status-filter').addEventListener('change', (e) => {
-    loadOrders(e.target.value);
-});
-
-// Verifica autenticação no carregamento da página
-document.addEventListener('DOMContentLoaded', () => {
-    if (!checkAuth()) return;
-    loadOrders();
-}); 
